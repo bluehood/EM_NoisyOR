@@ -60,8 +60,10 @@ for nPlot in range(nMatrix):
                 plt.title('Initial weights')
         
 plt.figure()
-plt.pcolor(np.vstack((np.sort(tp["hiddenVarWeights"]),
-                      np.sort(lp["hiddenVarWeights"]))))
+plt.pcolor(np.vstack((np.sort(lp["hiddenVarWeights"]),
+                      np.sort(tp["hiddenVarWeights"]))),
+           vmin=0., vmax=1.)
+plt.colorbar()
 plt.title("Subpopulations' probabilities\n(true on top of learned)")
 
 plt.show()
