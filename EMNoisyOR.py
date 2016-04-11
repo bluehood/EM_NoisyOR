@@ -32,10 +32,13 @@ for i in range(nHiddenVars-1):
 
 # Initialise parameters to arbitrary/random values
 # hiddenVarWeights = np.random.rand(nHiddenVars)
-hiddenVarWeights = trueParams["hiddenVarWeights"]
 # W = np.random.rand(samples.shape[1], nHiddenVars) # W[dimSample][nHiddenVars]
+
+# Initialise parameters to the ground-truth values
+hiddenVarWeights = trueParams["hiddenVarWeights"]
 W = trueParams["W"]
 q = np.zeros((samples.shape[1], hiddenVarConfs.shape[0]))
+initW = W
 
 def jointProbs(hiddenVarWeights, W, smpls=None, hvc=None):
     """Takes the parameters and returns a matrix p[sample][hiddenVarConfs].
@@ -126,7 +129,7 @@ while not done:
 
 filename = "l" + str(samples.shape[0])
 np.savez(filename, hiddenVarWeights=hiddenVarWeights, W=W,
-         logL=logL, trueLogL=trueLogL)
+         logL=logL, trueLogL=trueLogL, initW=initW)
 print "results have been saved in " + filename + ".npz"
 print "end hiddenVarWeights\n", hiddenVarWeights
 print "end W\n", W
