@@ -43,16 +43,21 @@ for nPlot in range(12):
 nMatrix = tp["W"].shape[1]
 plt.figure()
 for nPlot in range(nMatrix):
-        plt.subplot(nMatrix, 2, nPlot*2+1)
+        plt.subplot(nMatrix, 3, nPlot*3+1)
         plt.pcolor(tp["W"][:,nPlot].reshape(dimMatrix, dimMatrix),
                      cmap="Greys")
         if nPlot == 0:
                 plt.title('True weights')
-        plt.subplot(nMatrix, 2, nPlot*2+2)
+        plt.subplot(nMatrix, 3, nPlot*3+2)
         plt.pcolor(lp["W"][:,nPlot].reshape(dimMatrix, dimMatrix),
                      cmap="Greys")
         if nPlot == 0:
                 plt.title('Learned weights')
+        plt.subplot(nMatrix, 3, nPlot*3+3)
+        plt.pcolor(lp["initW"][:,nPlot].reshape(dimMatrix, dimMatrix),
+                     cmap="Greys")
+        if nPlot == 0:
+                plt.title('Initial weights')
         
 plt.figure()
 plt.pcolor(np.vstack((np.sort(tp["hiddenVarWeights"]),
