@@ -8,13 +8,16 @@ import argparse
 
 np.set_printoptions(precision=14, suppress=True, threshold=50)
 
+# this seed causes problems with the data in results/j6d9n500/wrong2
+#np.random.seed(17564234)
+
 # Define parser
 parser = argparse.ArgumentParser()
-parser.add_argument('-s', '--samplesfile', default='samples.npy',
-                    dest="sFile", help='the npy file containing the samples')
-parser.add_argument('-j', '--nhiddenvars', default=8, dest='nHiddenVars',
+parser.add_argument('-s', '--samplesfile', required=True, dest="sFile",
+                    help='the npy file containing the samples')
+parser.add_argument('-j', '--nhiddenvars', required=True, dest='nHiddenVars',
                     type=int, help='number of hidden variables')
-parser.add_argument('-t', '--tparamsfile', default='t500.npz', dest="tFile",
+parser.add_argument('-t', '--tparamsfile', required=True, dest="tFile",
                     help='the npz file containing the true parameters')
 args = parser.parse_args()
 
