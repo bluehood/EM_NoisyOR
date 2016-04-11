@@ -9,9 +9,9 @@ import argparse
 
 # Define parser
 parser = argparse.ArgumentParser()
-parser.add_argument('-t', '--truth', default='t500.npz', dest="truep",
+parser.add_argument('-t', '--truth', dest="truep", required=True,
                     help='the npz file containing the true parameters')
-parser.add_argument('-l', '--learned', default='l500.npz', dest="learnedp",
+parser.add_argument('-l', '--learned', dest="learnedp", required=True,
                     help='the npz file containing the learned parameters')
 parser.add_argument('-s', '--samples', dest="samples", required=True,
                     help='the npy file containing the samples')
