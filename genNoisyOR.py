@@ -30,22 +30,21 @@ dimSample = args.dimSample
 W = np.ones((dimSample, nHiddenVars))*0.1
 dimMatrix = int(sqrt(dimSample))
 nBars = min(nHiddenVars, 2*dimMatrix)
+value = 0.8
 # Paint vertical bars
 for c in range(nBars/2):
-    W[[ i*dimMatrix + c for i in range(dimMatrix) ], c ] = 0.9
-# Pain horizontal bars
+    W[[ i*dimMatrix + c for i in range(dimMatrix) ], c ] = value
+# Paint horizontal bars
 for c in range(nBars/2):
-    W[[ i + c*dimMatrix for i in range(dimMatrix) ], c + nBars/2 ] = 0.9
+    W[[ i + c*dimMatrix for i in range(dimMatrix) ], c + nBars/2 ] = value
 
-# hidden variables' weights are random
-# hiddenVarWeights = np.random.rand(nHiddenVars)
-# hidden variables' weights are all equal, and we want an avg of 2 bars/sample
-hiddenVarWeights = np.ones(nHiddenVars)*2./nHiddenVars
+# We want an average of 2 bars/sample
+Pi = 2./nHiddenVars
 
 samples = []
 for i in range(nSamples):
     # Generate hidden variables array s
-    s = np.array([ bernoulli.rvs(p) for p in hiddenVarWeights ])
+    s = bernoulli.rvs(Pi, size=nHiddenVars)
     # Evaluate array of bernoulli probabilities for the samples y
     yProb = 1 - np.prod(1 - W*s, axis=1)
     # produce a sample and put it in samples
@@ -54,7 +53,9 @@ for i in range(nSamples):
 samplesArray = np.array(samples, int)
 np.set_printoptions(threshold=nHiddenVars-1)
 print "samples\n", samplesArray
-print "\nhidden vars weights", hiddenVarWeights
+print "\nPi", Pi
 print "\nW\n", W
 np.save("samples", samplesArray)
-np.savez("t" + str(nSamples), hiddenVarWeights=hiddenVarWeights, W=W)
+np.savez("t" + str(nSamples), Pi=Pi, W=W)
+print "parameters were saved in file t" + str(nSamples) + ".npz"
+print "samples were saved in file samples.npy"

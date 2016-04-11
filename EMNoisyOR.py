@@ -6,7 +6,7 @@ import numpy as np
 import signal
 import argparse
 
-np.set_printoptions(precision=10, suppress=True, threshold=50)
+np.set_printoptions(precision=14, suppress=True, threshold=50)
 
 # Define parser
 parser = argparse.ArgumentParser()
@@ -25,22 +25,23 @@ trueParams = np.load(args.tFile)
 eps = 1e-8 # minimum value allowed for synaptic weights. max is 1-eps
 
 # Create array containing all possible hidden variables configurations
-hiddenVarConfs = np.array([[0],[1]])
+hiddenVarConfs = np.array([[0],[1]], dtype=int)
 for i in range(nHiddenVars-1):
     hiddenVarConfs = np.vstack([ np.hstack(([x,x], [[0],[1]]))
                                  for x in hiddenVarConfs ])
 
 # Initialise parameters to arbitrary/random values
-# hiddenVarWeights = np.random.rand(nHiddenVars)
-# W = np.random.rand(samples.shape[1], nHiddenVars) # W[dimSample][nHiddenVars]
+Pi = np.random.rand()
+W = np.random.rand(samples.shape[1], nHiddenVars) # W[dimSample][nHiddenVars]
 
 # Initialise parameters to the ground-truth values
-hiddenVarWeights = trueParams["hiddenVarWeights"]
-W = trueParams["W"]
+# Pi = trueParams["Pi"]
+# W = trueParams["W"]
+
 q = np.zeros((samples.shape[1], hiddenVarConfs.shape[0]))
 initW = W
 
-def jointProbs(hiddenVarWeights, W, smpls=None, hvc=None):
+def jointProbs(Pi, W, smpls=None, hvc=None):
     """Takes the parameters and returns a matrix p[sample][hiddenVarConfs].
     Each element of the matrix is the joint probablity \
                     p(sample, hiddenVarConf)"""
@@ -55,8 +56,8 @@ def jointProbs(hiddenVarWeights, W, smpls=None, hvc=None):
     #TODO do everything via dot, tensordot ecc
     for s in hvc:
         P += [ np.prod(1-W*s, axis=1) ];
-        pHiddenVarConf += [ np.prod(np.power(hiddenVarWeights, s) \
-                                * np.power(1-hiddenVarWeights, 1-s),
+        pHiddenVarConf += [ np.prod(np.power(Pi, s) \
+                                * np.power(1-Pi, 1-s),
                             axis=0) ]
     pSampleGivenS = np.array([ [
             np.prod(np.power(1-p, sample) * np.power(p, 1-sample)) 
@@ -65,13 +66,13 @@ def jointProbs(hiddenVarWeights, W, smpls=None, hvc=None):
     return pSampleGivenS*np.array(pHiddenVarConf)
 
 assert np.all(jointProbs(hvc=np.array([[0],[1]]),
-        hiddenVarWeights=np.array([0.1]),
+        Pi=np.array([0.1]),
         W=np.array([[0.1],[0.5]]),
         smpls=np.array([[0,1]])) - [[ 0., 0.045 ]] <= 1e-8)
 
 
 # Evaluate true log-likelihood from true parameters (for consistency checks)
-trueLogL = np.sum(np.log(np.sum(jointProbs(trueParams["hiddenVarWeights"],
+trueLogL = np.sum(np.log(np.sum(jointProbs(trueParams["Pi"],
                                             trueParams["W"]),
                                             axis=1)))
 
@@ -84,24 +85,24 @@ signal.signal(signal.SIGINT, signalHandler)
 def debugPrint():
     print "q", q
     print "W", W
-    print "Q", hiddenVarWeights
+    print "Pi", Pi
 
 done = False
 counter = 0;
 logL = ()
 while not done:
-    pSamplesAndHidden = jointProbs(hiddenVarWeights, W)
+    pSamplesAndHidden = jointProbs(Pi, W)
     pSamples = np.sum(pSamplesAndHidden, axis=1)
 
     # Evaluate new likelihood and append it to the tuple
     logL += (np.sum(np.log(pSamples)), )
 
-    # E-step (takes advantage of broadcasting of pSamples, hence the newaxis)
+    # E-step (np.newaxis is needed to use broadcasting)
     q = pSamplesAndHidden / pSamples[:,np.newaxis]
 
     # M-step
-    hiddenVarWeights = np.dot(np.sum(q, axis=0), hiddenVarConfs) / \
-            samples.shape[0]
+    Pi = np.dot(np.sum(q, axis=0), np.sum(hiddenVarConfs, axis=1)) / \
+            (samples.shape[0]*nHiddenVars)
 
     # Wtilde has shape (dimSample, nHiddenVars, nHiddenVarsConfs) and
     # Wtilde[d,j,c] = Prod_{j'!=j}{1 - W[d,j']*hiddenVarConfs[c,j']}
@@ -128,8 +129,8 @@ while not done:
         print "logL[" + str(counter) + "] = ", logL[-1]
 
 filename = "l" + str(samples.shape[0])
-np.savez(filename, hiddenVarWeights=hiddenVarWeights, W=W,
+np.savez(filename, Pi=Pi, W=W,
          logL=logL, trueLogL=trueLogL, initW=initW)
-print "results have been saved in " + filename + ".npz"
-print "end hiddenVarWeights\n", hiddenVarWeights
+print "end Pi\n", Pi
 print "end W\n", W
+print "results have been saved in " + filename + ".npz"
