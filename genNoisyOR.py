@@ -23,21 +23,24 @@ nSamples = args.nSamples
 nHiddenVars = args.nHiddenVars
 dimSample = args.dimSample
 
-# Each W[:,j] is seen as a sqrt(nHiddenVars)xsqrt(nHiddenVars) matrix
-# e.g. matrices will be 5x5 if nHiddenVars==25
+# Each W[h,:] is seen as a sqrt(dimSample)xsqrt(dimSample) matrix
+# e.g. matrices will be 5x5 if dimSample==25
 # Each of this matrices has one vertical or horizontal bar
+# The number of matrices should be equal to the number of hidden variables
 W = np.ones((dimSample, nHiddenVars))*0.1
-# W columns (vertical bars)
 dimMatrix = int(sqrt(dimSample))
-nBarPatterns = min(nHiddenVars/2, dimMatrix)
-for c in range(nBarPatterns):
-    W[[ i*dimMatrix + c for i in range(dimMatrix) ], c ] = 0.8
-# W rows (horizontal bars)
-for c in range(nBarPatterns):
-    W[[ i + c*dimMatrix for i in range(dimMatrix) ], c + nBarPatterns ] = 0.8
+nBars = min(nHiddenVars, 2*dimMatrix)
+# Paint vertical bars
+for c in range(nBars/2):
+    W[[ i*dimMatrix + c for i in range(dimMatrix) ], c ] = 0.9
+# Pain horizontal bars
+for c in range(nBars/2):
+    W[[ i + c*dimMatrix for i in range(dimMatrix) ], c + nBars/2 ] = 0.9
 
 # hidden variables' weights are random
-hiddenVarWeights = np.random.rand(nHiddenVars)
+# hiddenVarWeights = np.random.rand(nHiddenVars)
+# hidden variables' weights are all equal, and we want an avg of 2 bars/sample
+hiddenVarWeights = np.ones(nHiddenVars)*2./nHiddenVars
 
 samples = []
 for i in range(nSamples):
