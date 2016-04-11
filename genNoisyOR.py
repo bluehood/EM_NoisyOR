@@ -55,7 +55,7 @@ np.set_printoptions(threshold=nHiddenVars-1)
 print "samples\n", samplesArray
 print "\nPi", Pi
 print "\nW\n", W
-np.save("samples", samplesArray)
+np.save("s" + str(nSamples), samplesArray)
 np.savez("t" + str(nSamples), Pi=Pi, W=W)
 print "parameters were saved in file t" + str(nSamples) + ".npz"
-print "samples were saved in file samples.npy"
+print "samples were saved in file s" + str(nSamples) + ".npy"
