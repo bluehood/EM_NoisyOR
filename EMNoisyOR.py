@@ -30,7 +30,7 @@ for i in range(nHiddenVars-1):
     hiddenVarConfs = np.vstack([ np.hstack(([x,x], [[0],[1]]))
                                  for x in hiddenVarConfs ])
 
-# Initialise parameters to arbitrary/random values
+# Initialise parameters to random values
 Pi = np.random.rand()
 W = np.random.rand(samples.shape[1], nHiddenVars) # W[dimSample][nHiddenVars]
 
@@ -128,9 +128,16 @@ while not done:
         debugPrint()
         print "logL[" + str(counter) + "] = ", logL[-1]
 
+# Evaluate errors
+smallval = np.min(trueParams["W"])
+bigval = np.max(trueParams["W"])
+smalldiff = np.abs(W[W<0.5] - smallval)
+bigdiff = np.abs(W[W>=0.5] - bigval) 
+Werror = np.max(np.append(smalldiff, bigdiff))
+
 filename = "l" + str(samples.shape[0])
 np.savez(filename, Pi=Pi, W=W,
          logL=logL, trueLogL=trueLogL, initW=initW)
 print "end Pi\n", Pi
-print "end W\n", W
+print "end W (max error: " + str(Werror) + ")\n", W
 print "results have been saved in " + filename + ".npz"
