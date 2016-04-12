@@ -58,6 +58,7 @@ def jointProbs(Pi, W, smpls=None, hvc=None):
     pHiddenVarConf = []
     #TODO do everything via dot, tensordot ecc
     for s in hvc:
+        # FIXME we already evaluate this for the M-step! we can reuse it maybe?
         P += [ np.prod(1-W*s, axis=1) ];
         pHiddenVarConf += [ np.prod(np.power(Pi, s) \
                                 * np.power(1-Pi, 1-s),
@@ -69,9 +70,10 @@ def jointProbs(Pi, W, smpls=None, hvc=None):
     return pSampleGivenS*np.array(pHiddenVarConf)
 
 assert np.all(jointProbs(hvc=np.array([[0],[1]]),
-        Pi=np.array([0.1]),
-        W=np.array([[0.1],[0.5]]),
-        smpls=np.array([[0,1]])) - [[ 0., 0.045 ]] <= 1e-8)
+                         Pi=np.array([0.1]),
+                         W=np.array([[0.1],[0.5]]),
+                         smpls=np.array([[0,1]]))
+              - [[ 0., 0.045 ]] <= 1e-8)
 
 
 # Evaluate true log-likelihood from true parameters (for consistency checks)
@@ -111,7 +113,8 @@ while not done:
     # Wtilde[d,j,c] = Prod_{j'!=j}{1 - W[d,j']*hiddenVarConfs[c,j']}
     tmp = 1 - np.einsum('ij,kj->ijk',
                         W, hiddenVarConfs) # faster than * plus np.newaxis
-    Wtilde = np.stack([ np.prod(np.delete(tmp, j, 1), axis=1) \
+    #TODO try with np.fromfunction instead?
+    Wtilde = np.stack([ np.prod(np.delete(tmp, j, axis=1), axis=1) \
             for j in range(tmp.shape[1]) ], axis=1)
     
     denominators = 1 - Wtilde*tmp # faster than np.prod(tmp, axis=1)
