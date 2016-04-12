@@ -10,6 +10,7 @@ np.set_printoptions(precision=14, suppress=True, threshold=50)
 
 # this seed causes problems with the data in results/j6d9n500/wrong2
 #np.random.seed(17564234)
+# TODO save somewhere the RNG state, so we can reproduce the results
 
 # Define parser
 parser = argparse.ArgumentParser()
@@ -79,22 +80,37 @@ assert np.all(jointProbs(hvc=np.array([[0],[1]]),
               - [[ 0., 0.045 ]] <= 1e-8)
 
 
-# Evaluate true log-likelihood from true parameters (for consistency checks)
-trueLogL = np.sum(np.log(np.sum(jointProbs(trueParams["Pi"],
-                                            trueParams["W"]),
-                                            axis=1)))
+def meanq(a):
+    """Takes a (multidimensional) array and returns its mean weighted
+    over the posterior probabilities of each sample.
+    The array is assumed to have the axis over which the mean is to
+    be performed as last.
 
-def signalHandler(signal, frame):
-    global done
-    print "Quitting on keyboard interrupt!"
-    done = True
-signal.signal(signal.SIGINT, signalHandler)
+    An array with the same dimension of a is returned, but now the last
+    axis represents the mean of a relative to a different sample posterior.
     
+    The calculation performed is equivalent to np.dot(a, np.transpose(q))"""
+
+    return np.dot(a, np.transpose(q))
+
+
 def debugPrint():
     print "q", q
     print "W", W
     print "Pi", Pi
 
+
+def signalHandler(signal, frame):
+    global done
+    print "Quitting on keyboard interrupt!"
+    done = True
+
+
+# Evaluate true log-likelihood from true parameters (for consistency checks)
+trueLogL = np.sum(np.log(np.sum(jointProbs(trueParams["Pi"],
+                                            trueParams["W"]),
+                                            axis=1)))
+signal.signal(signal.SIGINT, signalHandler)
 done = False
 counter = 0;
 logL = ()
@@ -109,7 +125,7 @@ while not done:
     q = pSamplesAndHidden / pSamples[:,np.newaxis]
 
     # M-step
-    Pi = np.dot(np.sum(q, axis=0), np.sum(hiddenVarConfs, axis=1)) / \
+    Pi = np.sum(meanq(np.sum(hiddenVarConfs, axis=1))) / \
             (samples.shape[0]*nHiddenVars)
 
     # Wtilde has shape (dimSample, nHiddenVars, nHiddenVarsConfs) and
@@ -124,10 +140,10 @@ while not done:
     denominators = (1 - denominators)*denominators
     denominators[:,:,0] = 1 # Hack to resolve 0/0 operations to 0
     D = np.einsum('ijk,kj->ijk', Wtilde, hiddenVarConfs) / denominators
-    C = Wtilde*D
-    sum_nCavg = np.dot(C, np.sum(q, axis=0))
-    sum_nD_y = np.einsum('ijk,ki->ij', np.tensordot(D, q, (2,1)), samples - 1)
-    W = 1 + sum_nD_y/sum_nCavg
+    # FIXME would it be faster not to save D and C and do all in one line?
+    Ctilde = np.sum(meanq(Wtilde*D), axis=2)
+    Dtilde = np.einsum('ijk,ki->ij',meanq(D), samples - 1)
+    W = 1 + Dtilde/Ctilde
     W[W<eps] = eps
     W[W>1-eps] = 1-eps
 
