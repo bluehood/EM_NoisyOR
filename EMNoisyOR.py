@@ -63,10 +63,13 @@ def jointProbs(Pi, W, smpls=None, hvc=None):
         pHiddenVarConf += [ np.prod(np.power(Pi, s) \
                                 * np.power(1-Pi, 1-s),
                             axis=0) ]
-    pSampleGivenS = np.array([ [
-            np.prod(np.power(1-p, sample) * np.power(p, 1-sample)) 
-            for p in P ]
-        for sample in smpls ])
+    P = np.array(P)
+    #FIXME I would not have to transpose if P was already transposed (change P)
+    pSampleGivenS = np.transpose(np.prod(np.power(P[:,np.newaxis,:],
+                                                  1-smpls[np.newaxis,:,:]) *
+                                         np.power(1 - P[:,np.newaxis,:],
+                                                  smpls[np.newaxis,:,:]),
+                                 axis=2))
     return pSampleGivenS*np.array(pHiddenVarConf)
 
 assert np.all(jointProbs(hvc=np.array([[0],[1]]),
