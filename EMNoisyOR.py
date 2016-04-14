@@ -2,6 +2,7 @@
 # EM learning algorithm for the Noisy-OR
 # author: blue, 29/03/2016
 # TODO add upwards translation to evaluation of meanPosterior
+# TODO compute delta(samples)_n just once
 
 import numpy as np
 import signal
@@ -53,13 +54,14 @@ def meanPosterior(g, pseudoLogJoints, samples):
             (np.sum(np.exp(pseudoLogJoints), axis=0) + \
                 np.array(~np.any(samples, axis=1), dtype=int))
 
-def pseudoLogL(pseudoLogJoints, samples):
-    """Evaluate pseudoLogL = logL - N*H*log(1-Pi).
-    pseudoLogL = sum{n}{log(prod{d}{delta(y_nd)} + \
-            sum{c}{exp(pseudoLogJoints_cn)}}"""
+def logL(pseudoLogJoints, samples):
+    """Evaluate logL = logL - N*H*log(1-Pi).
+    LogL = sum{n}{log(prod{d}{delta(y_nd)} + \
+            sum{c}{exp(pseudoLogJoints_cn)}} + N*H*log(1-Pi)"""
 
     return np.sum(np.log(np.array(~np.any(samples, axis=1), dtype=int) + \
-            np.sum(np.exp(pseudoLogJoints), axis=0)))
+           np.sum(np.exp(pseudoLogJoints), axis=0))) + \
+           samples.shape[0]*nHiddenVars*np.log(1-Pi) # FIXME add these to arguments
 
 
 def debugPrint(pseudoLogJoints, Pi, W):
@@ -99,7 +101,7 @@ W = np.random.rand(samples.shape[1], nHiddenVars) # W[dimSample][nHiddenVars]
 initW = W
 
 # Evaluate true log-likelihood from true parameters (for consistency checks)
-truePseudoLogL = pseudoLogL(pseudoLogJoint(trueParams["Pi"],
+trueLogL = logL(pseudoLogJoint(trueParams["Pi"],
                                             trueParams["W"],
                                             hiddenVarConfs,
                                             samples),
@@ -107,10 +109,14 @@ truePseudoLogL = pseudoLogL(pseudoLogJoint(trueParams["Pi"],
 signal.signal(signal.SIGINT, signalHandler)
 done = False
 counter = 0;
-pseudoLogLs = ()
-# first E-step: evaluate pseudo-log-joint probabilities
-pseudoLogJoints = pseudoLogJoint(Pi, W, hiddenVarConfs, samples)
+logLs = ()
 for i in range(100):
+    # E-step: evaluate pseudo-log-joint probabilities
+    pseudoLogJoints = pseudoLogJoint(Pi, W, hiddenVarConfs, samples)
+
+    # Evaluate new likelihood and append it to the tuple
+    logLs += (logL(pseudoLogJoints, samples),)
+
     # M-step
     Pi = np.sum(meanPosterior(np.sum(hiddenVarConfs, axis=1),
                               pseudoLogJoints,
@@ -134,17 +140,11 @@ for i in range(100):
     W = 1 + Dtilde/Ctilde
     np.clip(W, eps, 1-eps, out=W)
 
-    # E-step: evaluate pseudo-log-joint probabilities
-    pseudoLogJoints = pseudoLogJoint(Pi, W, hiddenVarConfs, samples)
-
-    # Evaluate new likelihood and append it to the tuple
-    pseudoLogLs += (pseudoLogL(pseudoLogJoints, samples),)
-
-    # Print pseudoLogL to show progress
+    # Print logL to show progress
     counter += 1
     if counter % 10 == 0:
         debugPrint(pseudoLogJoints, Pi, W)
-        print "pseudoLogL[" + str(counter) + "] = ", pseudoLogLs[-1]
+        print "logL[" + str(counter) + "] = ", logLs[-1]
 
 # Evaluate errors
 smallval = np.min(trueParams["W"])
@@ -155,7 +155,7 @@ Werror = np.max(np.append(smalldiff, bigdiff))
 
 filename = "l" + str(samples.shape[0])
 np.savez(filename, Pi=Pi, W=W,
-         pseudoLogLs=pseudoLogLs, truePseudoLogL=truePseudoLogL, initW=initW)
+         logLs=logLs, trueLogL=trueLogL, initW=initW)
 print "end Pi\n", Pi
 print "end W (max error: " + str(Werror) + ")\n", W
 print "results have been saved in " + filename + ".npz"
