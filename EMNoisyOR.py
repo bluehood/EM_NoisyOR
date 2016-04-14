@@ -1,16 +1,13 @@
 #!/usr/bin/env python
 # EM learning algorithm for the Noisy-OR
 # author: blue, 29/03/2016
+# TODO add upwards translation to evaluation of meanPosterior
 
 import numpy as np
 import signal
 import argparse
 
-np.set_printoptions(precision=14, suppress=True, threshold=50)
-
-# this seed causes problems with the data in results/j6d9n500/wrong2
-#np.random.seed(17564234)
-# TODO save somewhere the RNG state, so we can reproduce the results
+np.set_printoptions(precision=14, suppress=True, threshold=10000)
 
 # Define parser
 parser = argparse.ArgumentParser()
@@ -21,30 +18,6 @@ parser.add_argument('-j', '--nhiddenvars', required=True, dest='nHiddenVars',
 parser.add_argument('-t', '--tparamsfile', required=True, dest="tFile",
                     help='the npz file containing the true parameters')
 args = parser.parse_args()
-
-# Set problem data
-nHiddenVars = args.nHiddenVars # Number of hidden variables assumed present
-samples = np.load(args.sFile)
-trueParams = np.load(args.tFile)
-eps = 1e-13 # minimum value allowed for synaptic weights (max is 1-eps)
-
-# Create array containing all possible hidden variables configurations
-hiddenVarConfs = np.array([[0],[1]], dtype=int)
-for i in range(nHiddenVars-1):
-    hiddenVarConfs = np.vstack([ np.hstack(([x,x], [[0],[1]]))
-                                 for x in hiddenVarConfs ])
-# Remove the all-zero configuration. It is not required in the EM-algorithm.
-hiddenVarConfs = np.delete(hiddenVarConfs, 0, 0)
-
-# Initialise parameters to random values
-Pi = np.random.rand()
-W = np.random.rand(samples.shape[1], nHiddenVars) # W[dimSample][nHiddenVars]
-
-# Initialise parameters to the ground-truth values
-# Pi = trueParams["Pi"]
-# W = trueParams["W"]
-
-initW = W
 
 def pseudoLogJoint(Pi, W, hiddenVarConfs, samples):
     """Takes the parameters and returns a matrix M[sample][hiddenVarConfs].
@@ -101,6 +74,30 @@ def signalHandler(signal, frame):
     done = True
 
 
+# Set problem data
+nHiddenVars = args.nHiddenVars # Number of hidden variables assumed present
+samples = np.load(args.sFile)
+trueParams = np.load(args.tFile)
+eps = 1e-13 # minimum value allowed for synaptic weights (max is 1-eps)
+
+# Create array containing all possible hidden variables configurations
+hiddenVarConfs = np.array([[0],[1]], dtype=int)
+for i in range(nHiddenVars-1):
+    hiddenVarConfs = np.vstack([ np.hstack(([x,x], [[0],[1]]))
+                                 for x in hiddenVarConfs ])
+# Remove the all-zero configuration. It is not required in the EM-algorithm.
+hiddenVarConfs = np.delete(hiddenVarConfs, 0, 0)
+
+# Initialise parameters to random values
+Pi = np.random.rand()
+W = np.random.rand(samples.shape[1], nHiddenVars) # W[dimSample][nHiddenVars]
+
+# Initialise parameters to the ground-truth values
+# Pi = trueParams["Pi"]
+# W = trueParams["W"]
+
+initW = W
+
 # Evaluate true log-likelihood from true parameters (for consistency checks)
 truePseudoLogL = pseudoLogL(pseudoLogJoint(trueParams["Pi"],
                                             trueParams["W"],
@@ -113,7 +110,7 @@ counter = 0;
 pseudoLogLs = ()
 # first E-step: evaluate pseudo-log-joint probabilities
 pseudoLogJoints = pseudoLogJoint(Pi, W, hiddenVarConfs, samples)
-for i in range(20):
+for i in range(100):
     # M-step
     Pi = np.sum(meanPosterior(np.sum(hiddenVarConfs, axis=1),
                               pseudoLogJoints,
