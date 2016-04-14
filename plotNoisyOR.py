@@ -24,10 +24,13 @@ lp = np.load(args.learnedp)
 # Samples
 samples = np.load(args.samples)
 # Plot log-likelihood and true log-likelihood
+# TODO add labels to axes (logL vs iterations)
 plt.figure()
-plt.plot(range(lp["logL"].size), lp["logL"],
-         range(lp["logL"].size), lp["trueLogL"].repeat(lp["logL"].size))
-plt.title("True vs learned log-likelihood")
+plt.plot(range(lp["pseudoLogLs"].size),
+         lp["pseudoLogLs"],
+         range(lp["pseudoLogLs"].size),
+         lp["truePseudoLogL"].repeat(lp["pseudoLogLs"].size))
+plt.title("True vs learned pseudo-log-likelihood")
 # Plot the first twelve samples
 dimMatrix = sqrt(samples.shape[1])
 samples = samples[:12]

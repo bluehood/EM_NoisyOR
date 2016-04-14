@@ -26,13 +26,15 @@ args = parser.parse_args()
 nHiddenVars = args.nHiddenVars # Number of hidden variables assumed present
 samples = np.load(args.sFile)
 trueParams = np.load(args.tFile)
-eps = 1e-8 # minimum value allowed for synaptic weights. max is 1-eps
+eps = 1e-13 # minimum value allowed for synaptic weights (max is 1-eps)
 
 # Create array containing all possible hidden variables configurations
 hiddenVarConfs = np.array([[0],[1]], dtype=int)
 for i in range(nHiddenVars-1):
     hiddenVarConfs = np.vstack([ np.hstack(([x,x], [[0],[1]]))
                                  for x in hiddenVarConfs ])
+# Remove the all-zero configuration. It is not required in the EM-algorithm.
+hiddenVarConfs = np.delete(hiddenVarConfs, 0, 0)
 
 # Initialise parameters to random values
 Pi = np.random.rand()
@@ -42,62 +44,55 @@ W = np.random.rand(samples.shape[1], nHiddenVars) # W[dimSample][nHiddenVars]
 # Pi = trueParams["Pi"]
 # W = trueParams["W"]
 
-q = np.zeros((samples.shape[1], hiddenVarConfs.shape[0]))
 initW = W
 
-def jointProbs(Pi, W, smpls=None, hvc=None):
-    """Takes the parameters and returns a matrix p[sample][hiddenVarConfs].
-    Each element of the matrix is the joint probablity \
-                    p(sample, hiddenVarConf)"""
+def pseudoLogJoint(Pi, W, hiddenVarConfs, samples):
+    """Takes the parameters and returns a matrix M[sample][hiddenVarConfs].
+    Each element of the matrix is the pseudo-log-joint probablity \
+                    B*log(p(hiddenVarConf, sample))"""
 
-    if smpls is None:
-            smpls = samples
-    if hvc is None:
-            hvc = hiddenVarConfs
-
-    P = []
-    pHiddenVarConf = []
-    #TODO do everything via dot, tensordot ecc
-    for s in hvc:
-        # FIXME we already evaluate this for the M-step! we can reuse it maybe?
-        P += [ np.prod(1-W*s, axis=1) ];
-        pHiddenVarConf += [ np.prod(np.power(Pi, s) \
-                                * np.power(1-Pi, 1-s),
-                            axis=0) ]
-    P = np.array(P)
-    #FIXME I would not have to transpose if P was already transposed (change P)
-    pSampleGivenS = np.transpose(np.prod(np.power(P[:,np.newaxis,:],
-                                                  1-smpls[np.newaxis,:,:]) *
-                                         np.power(1 - P[:,np.newaxis,:],
-                                                  smpls[np.newaxis,:,:]),
-                                 axis=2))
-    return pSampleGivenS*np.array(pHiddenVarConf)
-
-assert np.all(jointProbs(hvc=np.array([[0],[1]]),
-                         Pi=np.array([0.1]),
-                         W=np.array([[0.1],[0.5]]),
-                         smpls=np.array([[0,1]]))
-              - [[ 0., 0.045 ]] <= 1e-8)
+    # FIXME we already evaluate 1-W_dh*s_ch for the M-step
+    # prods_dc = 1 - Wbar_dc = prod{h}{1-W_dh*s_ch}
+    prods = np.prod(1 - np.einsum('ij,kj->ijk', W, hiddenVarConfs), axis=1)
+    # logPriors_nc = sum{d}{y_nd*log(1/prods_dc - 1) + log(prods_dc)}
+    logPriors = np.dot(samples, np.log(1/prods - 1)) + np.sum(np.log(prods), axis=0)
+    # logHiddenVarProbs_c = sum{h}{hvc_ch}*log(Pi/(1-Pi))
+    logHiddenVarProbs = np.sum(hiddenVarConfs, axis=1)*np.log(Pi/(1-Pi))
+    # return pseudoLogJoints_cn
+    return np.transpose(logHiddenVarProbs + logPriors)
 
 
-def meanq(a):
-    """Takes a (multidimensional) array and returns its mean weighted
+def meanPosterior(g, pseudoLogJoints, samples):
+    """Takes a (multidimensional) array g and returns its mean weighted
     over the posterior probabilities of each sample.
     The array is assumed to have the axis over which the mean is to
     be performed as last.
 
-    An array with the same dimension of a is returned, but now the last
-    axis represents the mean of a relative to a different sample posterior.
+    An array with the same number of dimensions of g is returned, but now
+    the last axis represents the mean of g relative to each different
+    sample.
     
     The calculation performed is equivalent to np.dot(a, np.transpose(q))"""
 
-    return np.dot(a, np.transpose(q))
+    # sum{c}{g_ic*exp(pseudoLogJoints_cn)} / 
+    #   (sum{c}{exp(pseudoLogJoints_cn)} + prod{d}{delta(y_nd))
+    return np.dot(g, np.exp(pseudoLogJoints)) / \
+            (np.sum(np.exp(pseudoLogJoints), axis=0) + \
+                np.array(~np.any(samples, axis=1), dtype=int))
+
+def pseudoLogL(pseudoLogJoints, samples):
+    """Evaluate pseudoLogL = logL - N*H*log(1-Pi).
+    pseudoLogL = sum{n}{log(prod{d}{delta(y_nd)} + \
+            sum{c}{exp(pseudoLogJoints_cn)}}"""
+
+    return np.sum(np.log(np.array(~np.any(samples, axis=1), dtype=int) + \
+            np.sum(np.exp(pseudoLogJoints), axis=0)))
 
 
-def debugPrint():
-    print "q", q
+def debugPrint(pseudoLogJoints, Pi, W):
+    #print "plg", pseudoLogJoints
     print "W", W
-    print "Pi", Pi
+    #print "Pi", Pi
 
 
 def signalHandler(signal, frame):
@@ -107,51 +102,52 @@ def signalHandler(signal, frame):
 
 
 # Evaluate true log-likelihood from true parameters (for consistency checks)
-trueLogL = np.sum(np.log(np.sum(jointProbs(trueParams["Pi"],
-                                            trueParams["W"]),
-                                            axis=1)))
+truePseudoLogL = pseudoLogL(pseudoLogJoint(trueParams["Pi"],
+                                            trueParams["W"],
+                                            hiddenVarConfs,
+                                            samples),
+                            samples)
 signal.signal(signal.SIGINT, signalHandler)
 done = False
 counter = 0;
-logL = ()
-while not done:
-    pSamplesAndHidden = jointProbs(Pi, W)
-    pSamples = np.sum(pSamplesAndHidden, axis=1)
-
-    # Evaluate new likelihood and append it to the tuple
-    logL += (np.sum(np.log(pSamples)), )
-
-    # E-step (np.newaxis is needed to use broadcasting)
-    q = pSamplesAndHidden / pSamples[:,np.newaxis]
-
+pseudoLogLs = ()
+# first E-step: evaluate pseudo-log-joint probabilities
+pseudoLogJoints = pseudoLogJoint(Pi, W, hiddenVarConfs, samples)
+for i in range(20):
     # M-step
-    Pi = np.sum(meanq(np.sum(hiddenVarConfs, axis=1))) / \
+    Pi = np.sum(meanPosterior(np.sum(hiddenVarConfs, axis=1),
+                              pseudoLogJoints,
+                              samples)) / \
             (samples.shape[0]*nHiddenVars)
 
-    # Wtilde has shape (dimSample, nHiddenVars, nHiddenVarsConfs) and
-    # Wtilde[d,j,c] = Prod_{j'!=j}{1 - W[d,j']*hiddenVarConfs[c,j']}
-    tmp = 1 - np.einsum('ij,kj->ijk',
+    # Wtilde_dhc = Prod{h'!=h}{1 - W_dj'*hiddenVarConfs_cj'}
+    Ws = 1 - np.einsum('ij,kj->ijk',
                         W, hiddenVarConfs) # faster than * plus np.newaxis
-    #TODO try with np.fromfunction instead?
-    Wtilde = np.stack([ np.prod(np.delete(tmp, j, axis=1), axis=1) \
-            for j in range(tmp.shape[1]) ], axis=1)
-    
-    denominators = 1 - Wtilde*tmp # faster than np.prod(tmp, axis=1)
+    # TODO try with np.fromfunction instead?
+    Wtilde = np.stack([ np.prod(np.delete(Ws, j, axis=1), axis=1) \
+            for j in range(Ws.shape[1]) ], axis=1)
+    denominators = 1 - Wtilde*Ws # faster than np.prod(Ws, axis=1)
     denominators = (1 - denominators)*denominators
-    denominators[:,:,0] = 1 # Hack to resolve 0/0 operations to 0
     D = np.einsum('ijk,kj->ijk', Wtilde, hiddenVarConfs) / denominators
     # FIXME would it be faster not to save D and C and do all in one line?
-    Ctilde = np.sum(meanq(Wtilde*D), axis=2)
-    Dtilde = np.einsum('ijk,ki->ij',meanq(D), samples - 1)
+    Dtilde = np.einsum('ijk,ki->ij',
+                       meanPosterior(D, pseudoLogJoints, samples),
+                       samples - 1)
+    Ctilde = np.sum(meanPosterior(Wtilde*D, pseudoLogJoints, samples), axis=2)
     W = 1 + Dtilde/Ctilde
-    W[W<eps] = eps
-    W[W>1-eps] = 1-eps
+    np.clip(W, eps, 1-eps, out=W)
 
-    # Print logL to show progress
+    # E-step: evaluate pseudo-log-joint probabilities
+    pseudoLogJoints = pseudoLogJoint(Pi, W, hiddenVarConfs, samples)
+
+    # Evaluate new likelihood and append it to the tuple
+    pseudoLogLs += (pseudoLogL(pseudoLogJoints, samples),)
+
+    # Print pseudoLogL to show progress
     counter += 1
     if counter % 10 == 0:
-        debugPrint()
-        print "logL[" + str(counter) + "] = ", logL[-1]
+        debugPrint(pseudoLogJoints, Pi, W)
+        print "pseudoLogL[" + str(counter) + "] = ", pseudoLogLs[-1]
 
 # Evaluate errors
 smallval = np.min(trueParams["W"])
@@ -162,7 +158,7 @@ Werror = np.max(np.append(smalldiff, bigdiff))
 
 filename = "l" + str(samples.shape[0])
 np.savez(filename, Pi=Pi, W=W,
-         logL=logL, trueLogL=trueLogL, initW=initW)
+         pseudoLogLs=pseudoLogLs, truePseudoLogL=truePseudoLogL, initW=initW)
 print "end Pi\n", Pi
 print "end W (max error: " + str(Werror) + ")\n", W
 print "results have been saved in " + filename + ".npz"
