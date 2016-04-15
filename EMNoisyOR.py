@@ -18,14 +18,13 @@ parser.add_argument('-t', '--tparamsfile', required=True, dest="tFile",
                     help='the npz file containing the true parameters')
 args = parser.parse_args()
 
-def pseudoLogJoint(Pi, W, hiddenVarConfs, samples):
+def pseudoLogJoint(Pi, W, hiddenVarConfs, samples, Ws):
     """Takes the parameters and returns a matrix M[sample][hiddenVarConfs].
     Each element of the matrix is the pseudo-log-joint probablity \
                     B*log(p(hiddenVarConf, sample))"""
 
-    # FIXME we already evaluate 1-W_dh*s_ch for the M-step
     # prods_dc = 1 - Wbar_dc = prod{h}{1-W_dh*s_ch}
-    prods = np.prod(1 - np.einsum('ij,kj->ijk', W, hiddenVarConfs), axis=1)
+    prods = np.prod(Ws, axis=1)
     # logPriors_nc = sum{d}{y_nd*log(1/prods_dc - 1) + log(prods_dc)}
     logPriors = np.dot(samples, np.log(1/prods - 1)) + np.sum(np.log(prods), axis=0)
     # logHiddenVarProbs_c = sum{h}{hvc_ch}*log(Pi/(1-Pi))
@@ -97,28 +96,21 @@ hiddenVarConfs = np.delete(hiddenVarConfs, 0, 0)
 # Initialise parameters to random values
 Pi = np.random.rand()
 W = np.random.rand(samples.shape[1], nHiddenVars) # W[dimSample][nHiddenVars]
+initW = W # save initial values of the parameters for visualisation purposes
 
 # Initialise parameters to the ground-truth values
 # Pi = trueParams["Pi"]
 # W = trueParams["W"]
 
-initW = W
-
-# Evaluate true log-likelihood from true parameters (for consistency checks)
-trueLogL = logL(pseudoLogJoint(trueParams["Pi"],
-                                            trueParams["W"],
-                                            hiddenVarConfs,
-                                            samples),
-                            deltaSamples,
-                            nHiddenVars,
-                            Pi)
 signal.signal(signal.SIGINT, signalHandler)
 done = False
 counter = 0;
 logLs = ()
 for i in range(100):
     # E-step: evaluate pseudo-log-joint probabilities
-    pseudoLogJoints = pseudoLogJoint(Pi, W, hiddenVarConfs, samples)
+    # this is faster than W[:,None,:]*hvc[None,:,:]
+    Ws = 1 - np.einsum('ij,kj->ijk', W, hiddenVarConfs) 
+    pseudoLogJoints = pseudoLogJoint(Pi, W, hiddenVarConfs, samples, Ws)
 
     # Evaluate new likelihood and append it to the tuple
     logLs += (logL(pseudoLogJoints, deltaSamples, nHiddenVars, Pi),)
@@ -130,15 +122,11 @@ for i in range(100):
             (samples.shape[0]*nHiddenVars)
 
     # Wtilde_dhc = Prod{h'!=h}{1 - W_dj'*hiddenVarConfs_cj'}
-    Ws = 1 - np.einsum('ij,kj->ijk',
-                        W, hiddenVarConfs) # faster than * plus np.newaxis
-    # TODO try with np.fromfunction instead?
     Wtilde = np.stack([ np.prod(np.delete(Ws, j, axis=1), axis=1) \
             for j in range(Ws.shape[1]) ], axis=1)
     denominators = 1 - Wtilde*Ws # faster than np.prod(Ws, axis=1)
     denominators = (1 - denominators)*denominators
     D = np.einsum('ijk,kj->ijk', Wtilde, hiddenVarConfs) / denominators
-    # FIXME would it be faster not to save D and C and do all in one line?
     Dtilde = np.einsum('ijk,ki->ij',
                        meanPosterior(D, pseudoLogJoints, samples),
                        samples - 1)
@@ -158,6 +146,16 @@ bigval = np.max(trueParams["W"])
 smalldiff = np.abs(W[W<0.5] - smallval)
 bigdiff = np.abs(W[W>=0.5] - bigval) 
 Werror = np.max(np.append(smalldiff, bigdiff))
+# Evaluate true log-likelihood from true parameters (for consistency checks)
+trueWs = 1 - np.einsum('ij,kj->ijk',trueParams["W"],hiddenVarConfs)
+trueLogL = logL(pseudoLogJoint(trueParams["Pi"],
+                               trueParams["W"],
+                               hiddenVarConfs,
+                               samples,
+                               trueWs),
+                 deltaSamples,
+                 nHiddenVars,
+                 trueParams["Pi"])
 
 filename = "l" + str(samples.shape[0])
 np.savez(filename, Pi=Pi, W=W,
