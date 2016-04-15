@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # EM learning algorithm for the Noisy-OR
 # author: blue, 29/03/2016
-# TODO compute delta(samples)_n just once
 
 import numpy as np
 import signal
@@ -56,16 +55,16 @@ def meanPosterior(g, pseudoLogJoints, samples):
     #   (sum{c}{exp(pseudoLogJoints_cn + B)} + prod{d}{delta(y_nd)*exp(B))
     return np.dot(g, np.exp(pseudoLogJoints + B)) / \
             (np.sum(np.exp(pseudoLogJoints + B), axis=0) + \
-                np.array(~np.any(samples, axis=1), dtype=int)*np.exp(B))
+                deltaSamples*np.exp(B))
 
-def logL(pseudoLogJoints, samples):
+def logL(pseudoLogJoints, deltaSamples, nHiddenVars, Pi):
     """Evaluate logL = logL - N*H*log(1-Pi).
     LogL = sum{n}{log(prod{d}{delta(y_nd)} + \
             sum{c}{exp(pseudoLogJoints_cn)}} + N*H*log(1-Pi)"""
 
-    return np.sum(np.log(np.array(~np.any(samples, axis=1), dtype=int) + \
+    return np.sum(np.log(deltaSamples + \
            np.sum(np.exp(pseudoLogJoints), axis=0))) + \
-           samples.shape[0]*nHiddenVars*np.log(1-Pi) # FIXME add these to arguments
+           deltaSamples.size*nHiddenVars*np.log(1-Pi)
 
 
 def debugPrint(pseudoLogJoints, Pi, W):
@@ -83,6 +82,7 @@ def signalHandler(signal, frame):
 # Set problem data
 nHiddenVars = args.nHiddenVars # Number of hidden variables assumed present
 samples = np.load(args.sFile)
+deltaSamples = np.array(~np.any(samples, axis=1), dtype=int)
 trueParams = np.load(args.tFile)
 eps = 1e-13 # minimum value allowed for synaptic weights (max is 1-eps)
 
@@ -109,7 +109,9 @@ trueLogL = logL(pseudoLogJoint(trueParams["Pi"],
                                             trueParams["W"],
                                             hiddenVarConfs,
                                             samples),
-                            samples)
+                            deltaSamples,
+                            nHiddenVars,
+                            Pi)
 signal.signal(signal.SIGINT, signalHandler)
 done = False
 counter = 0;
@@ -119,7 +121,7 @@ for i in range(100):
     pseudoLogJoints = pseudoLogJoint(Pi, W, hiddenVarConfs, samples)
 
     # Evaluate new likelihood and append it to the tuple
-    logLs += (logL(pseudoLogJoints, samples),)
+    logLs += (logL(pseudoLogJoints, deltaSamples, nHiddenVars, Pi),)
 
     # M-step
     Pi = np.sum(meanPosterior(np.sum(hiddenVarConfs, axis=1),
