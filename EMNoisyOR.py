@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # EM learning algorithm for the Noisy-OR
 # author: blue, 29/03/2016
-# TODO add upwards translation to evaluation of meanPosterior
 # TODO compute delta(samples)_n just once
 
 import numpy as np
@@ -48,11 +47,16 @@ def meanPosterior(g, pseudoLogJoints, samples):
     
     The calculation performed is equivalent to np.dot(a, np.transpose(q))"""
 
-    # sum{c}{g_ic*exp(pseudoLogJoints_cn)} / 
-    #   (sum{c}{exp(pseudoLogJoints_cn)} + prod{d}{delta(y_nd))
-    return np.dot(g, np.exp(pseudoLogJoints)) / \
-            (np.sum(np.exp(pseudoLogJoints), axis=0) + \
-                np.array(~np.any(samples, axis=1), dtype=int))
+    # Evaluate constants B_n by which we can translate pseudoLogJoints
+    # TODO check grafically whether 20 is a good magic number
+    # (exp(20) is about the highest number we can evaluate precisely)
+    B = 20 - np.max(pseudoLogJoints, axis=0)
+
+    # sum{c}{g_ic*exp(pseudoLogJoints_cn + B)} /
+    #   (sum{c}{exp(pseudoLogJoints_cn + B)} + prod{d}{delta(y_nd)*exp(B))
+    return np.dot(g, np.exp(pseudoLogJoints + B)) / \
+            (np.sum(np.exp(pseudoLogJoints + B), axis=0) + \
+                np.array(~np.any(samples, axis=1), dtype=int)*np.exp(B))
 
 def logL(pseudoLogJoints, samples):
     """Evaluate logL = logL - N*H*log(1-Pi).
