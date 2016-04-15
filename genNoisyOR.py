@@ -31,7 +31,6 @@ W = np.ones((dimSample, nHiddenVars))*0.1
 dimMatrix = int(sqrt(dimSample))
 nBars = min(nHiddenVars, 2*dimMatrix)
 value = 0.8
-# TODO can this be written without for loops?
 # Paint vertical bars
 for c in range(nBars/2):
     W[[ i*dimMatrix + c for i in range(dimMatrix) ], c ] = value

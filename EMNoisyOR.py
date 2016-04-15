@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # EM learning algorithm for the Noisy-OR
 # author: blue, 29/03/2016
+# TODO visualise weight matrices while learning
 
 import numpy as np
 import signal
