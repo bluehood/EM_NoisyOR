@@ -19,6 +19,13 @@ parser.add_argument('-s', '--samples', dest="samples", required=True,
                     help='the npy file containing the samples')
 args = parser.parse_args()
 
+def clear_axes(plot):
+    axes = plot.get_axes()
+    axes.set_xticklabels([])
+    axes.set_xticks([])
+    axes.set_yticklabels([])
+    axes.set_yticks([])
+
 # Load true parameters
 tp = np.load(args.truep)
 # Load log-likelihood and learned parameters
@@ -26,30 +33,24 @@ lp = np.load(args.learnedp)
 # Samples
 samples = np.load(args.samples)
 # Plot log-likelihood and true log-likelihood
-# TODO add labels to axes (logL vs iterations)
 plt.figure()
 plt.plot(range(lp["logLs"].size),
          lp["logLs"],
          range(lp["logLs"].size),
          lp["trueLogL"].repeat(lp["logLs"].size))
 plt.title("True vs learned log-likelihood")
+plt.xlabel("iterations")
+plt.ylabel("log-likelihood")
 # Plot the first twelve samples
 dimMatrix = sqrt(samples.shape[1])
 samples = samples[:12]
-
-def format_plot(plot):
-    axes = plot.get_axes()
-    axes.set_xticklabels([])
-    axes.set_xticks([])
-    axes.set_yticklabels([])
-    axes.set_yticks([])
 
 plt.figure()
 for nPlot in range(12):
     plt.subplot(4, 3, nPlot+1)
     plot = plt.pcolor(samples[nPlot].reshape(dimMatrix, dimMatrix),
                  cmap="Greys")
-    format_plot(plot)
+    clear_axes(plot)
     if nPlot == 1:
             plt.title('First 12 samples')
 
@@ -61,20 +62,20 @@ iMats = np.transpose(lp["initW"]).reshape(nMatrices,dimMatrix,dimMatrix)
 plt.figure()
 for nMat in range(nMatrices):
         plt.subplot(nMatrices, 3, nMat*3+1)
-        plot = plt.pcolor(tMats[nMat], cmap="Greys", vmin=0, vmax=1)
-        format_plot(plot)
-        if nPlot == 0:
-                plt.title('True weights')
+        plot = plt.pcolor(iMats[nMat], cmap="Greys", vmin=0, vmax=1)
+        clear_axes(plot)
+        if nMat == 0:
+                plt.title('Initial weights')
         plt.subplot(nMatrices, 3, nMat*3+2)
         plot = plt.pcolor(lMats[nMat], cmap="Greys", vmin=0, vmax=1)
-        format_plot(plot)
-        if nPlot == 0:
+        clear_axes(plot)
+        if nMat == 0:
                 plt.title('Learned weights')
         plt.subplot(nMatrices, 3, nMat*3+3)
-        plot = plt.pcolor(iMats[nMat], cmap="Greys", vmin=0, vmax=1)
-        format_plot(plot)
-        if nPlot == 0:
-                plt.title('Initial weights')
+        plot = plt.pcolor(tMats[nMat], cmap="Greys", vmin=0, vmax=1)
+        clear_axes(plot)
+        if nMat == 0:
+                plt.title('True weights')
         
 plt.figure()
 plot = plt.pcolor(np.vstack((lp["Pi"],tp["Pi"])),
