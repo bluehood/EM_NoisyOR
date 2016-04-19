@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # EM learning algorithm for the Noisy-OR
 # author: blue, 29/03/2016
-# TODO visualise weight matrices while learning
+# TODO branch with weights show in real-time
+# TODO add "-p" option as shortcut for all other options
+# TODO branch with version that allows multiple Pi's
+# TODO branch with TV-EM
 
 import numpy as np
 import signal
@@ -68,9 +71,9 @@ def logL(pseudoLogJoints, deltaSamples, nHiddenVars, Pi):
 
 
 def debugPrint(pseudoLogJoints, Pi, W):
-    #print "plg", pseudoLogJoints
+    print "plg", pseudoLogJoints
     print "W", W
-    #print "Pi", Pi
+    print "Pi", Pi
 
 
 def signalHandler(signal, frame):
@@ -102,6 +105,17 @@ initW = W # save initial values of the parameters for visualisation purposes
 # Initialise parameters to the ground-truth values
 # Pi = trueParams["Pi"]
 # W = trueParams["W"]
+
+# Evaluate true log-likelihood from true parameters (for consistency checks)
+trueWs = 1 - np.einsum('ij,kj->ijk',trueParams["W"],hiddenVarConfs)
+trueLogL = logL(pseudoLogJoint(trueParams["Pi"],
+                               trueParams["W"],
+                               hiddenVarConfs,
+                               samples,
+                               trueWs),
+                 deltaSamples,
+                 nHiddenVars,
+                 trueParams["Pi"])
 
 signal.signal(signal.SIGINT, signalHandler)
 done = False
@@ -135,11 +149,10 @@ for i in range(100):
     W = 1 + Dtilde/Ctilde
     np.clip(W, eps, 1-eps, out=W)
 
-    # Print logL to show progress
-    counter += 1
     if counter % 10 == 0:
-        debugPrint(pseudoLogJoints, Pi, W)
+        # Print logL to show progress
         print "logL[" + str(counter) + "] = ", logLs[-1]
+    counter += 1
 
 # Evaluate errors
 smallval = np.min(trueParams["W"])
@@ -147,16 +160,6 @@ bigval = np.max(trueParams["W"])
 smalldiff = np.abs(W[W<0.5] - smallval)
 bigdiff = np.abs(W[W>=0.5] - bigval) 
 Werror = np.max(np.append(smalldiff, bigdiff))
-# Evaluate true log-likelihood from true parameters (for consistency checks)
-trueWs = 1 - np.einsum('ij,kj->ijk',trueParams["W"],hiddenVarConfs)
-trueLogL = logL(pseudoLogJoint(trueParams["Pi"],
-                               trueParams["W"],
-                               hiddenVarConfs,
-                               samples,
-                               trueWs),
-                 deltaSamples,
-                 nHiddenVars,
-                 trueParams["Pi"])
 
 filename = "l" + str(samples.shape[0])
 np.savez(filename, Pi=Pi, W=W,
