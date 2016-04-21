@@ -99,9 +99,16 @@ hiddenVarConfs = np.array([[0],[1]], dtype=int)
 for i in range(nHiddenVars-1):
     hiddenVarConfs = np.vstack([ np.hstack(([x,x], [[0],[1]]))
                                  for x in hiddenVarConfs ])
+# Do the same for the true number of hidden variables
+trueHiddenVarConfs = np.array([[0],[1]], dtype=int)
+for i in range(trueParams["W"].shape[1]-1):
+    trueHiddenVarConfs = np.vstack([ np.hstack(([x,x], [[0],[1]]))
+                                 for x in trueHiddenVarConfs ])
+
 # Remove the all-zero configuration:
 # it is not required in the EM-algorithm and causes 0/0 calculations
 hiddenVarConfs = np.delete(hiddenVarConfs, 0, 0)
+trueHiddenVarConfs = np.delete(trueHiddenVarConfs, 0, 0)
 
 # Initialise parameters to random values
 # TODO use smarter initial values for the parameters
@@ -114,14 +121,14 @@ initW = W # save initial values of the parameters for visualisation purposes
 # W = trueParams["W"]
 
 # Evaluate true log-likelihood from true parameters (for consistency checks)
-trueWs = 1 - np.einsum('ij,kj->ijk',trueParams["W"],hiddenVarConfs)
+trueWs = 1 - np.einsum('ij,kj->ijk', trueParams["W"], trueHiddenVarConfs)
 trueLogL = logL(pseudoLogJoint(trueParams["Pi"],
                                trueParams["W"],
-                               hiddenVarConfs,
+                               trueHiddenVarConfs,
                                samples,
                                trueWs),
                  deltaSamples,
-                 nHiddenVars,
+                 trueHiddenVarConfs.shape[1],
                  trueParams["Pi"])
 
 # Ctrl-C now does not interrupts execution, just sets done = True

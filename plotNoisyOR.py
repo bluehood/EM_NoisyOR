@@ -55,27 +55,28 @@ for nPlot in range(12):
             plt.title('First 12 samples')
 
 # Build grid of heat-maps to compare true and learned parameters
-nMatrices = tp["W"].shape[1]
-tMats = np.transpose(tp["W"]).reshape(nMatrices,dimMatrix,dimMatrix)
-lMats = np.transpose(lp["W"]).reshape(nMatrices,dimMatrix,dimMatrix)
-iMats = np.transpose(lp["initW"]).reshape(nMatrices,dimMatrix,dimMatrix)
+nMatrices = max(tp["W"].shape[1], lp["W"].shape[1])
+# matrices[0] is the initial matrices, matrices[1] is the learned ones,
+# matrices[2] the ground-truth matrices
+matrices = [ np.transpose(lp["initW"]).reshape(lp["W"].shape[1],
+                                               dimMatrix,
+                                               dimMatrix), 
+             np.transpose(lp["W"]).reshape(lp["W"].shape[1],
+                                           dimMatrix,
+                                           dimMatrix),
+             np.transpose(tp["W"]).reshape(tp["W"].shape[1],
+                                           dimMatrix,
+                                           dimMatrix) ]
+titles = ("Initial weights", "Learned weights", "True weights")
 plt.figure()
 for nMat in range(nMatrices):
-        plt.subplot(nMatrices, 3, nMat*3+1)
-        plot = plt.pcolor(iMats[nMat], cmap="Greys", vmin=0, vmax=1)
-        clear_axes(plot)
-        if nMat == 0:
-                plt.title('Initial weights')
-        plt.subplot(nMatrices, 3, nMat*3+2)
-        plot = plt.pcolor(lMats[nMat], cmap="Greys", vmin=0, vmax=1)
-        clear_axes(plot)
-        if nMat == 0:
-                plt.title('Learned weights')
-        plt.subplot(nMatrices, 3, nMat*3+3)
-        plot = plt.pcolor(tMats[nMat], cmap="Greys", vmin=0, vmax=1)
-        clear_axes(plot)
-        if nMat == 0:
-                plt.title('True weights')
+    for i in range(3):
+        if matrices[i].shape[0] > nMat:
+            plt.subplot(nMatrices, 3, nMat*3+i+1)
+            plot = plt.pcolor(matrices[i][nMat], cmap="Greys", vmin=0, vmax=1)
+            clear_axes(plot)
+            if nMat == 0:
+                plt.title(titles[i])
         
 plt.figure()
 plot = plt.pcolor(np.vstack((lp["Pi"],tp["Pi"])),
