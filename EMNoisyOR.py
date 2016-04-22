@@ -46,13 +46,13 @@ B*log(p(hiddenVarConf, sample))"""
 
     # prods_dc = 1 - Wbar_dc = prod{h}{1-W_dh*s_ch}
     prods = np.prod(Ws, axis=1)
-    # logPriors_nc = sum{d}{y_nd*log(1/prods_dc - 1) + log(prods_dc)}
-    logPriors = np.dot(samples, np.log(1/prods - 1)) + \
+    # logPy_nc = sum{d}{y_nd*log(1/prods_dc - 1) + log(prods_dc)}
+    logPy = np.dot(samples, np.log(1/prods - 1)) + \
                 np.sum(np.log(prods), axis=0)
-    # logHiddenVarProbs_c = sum{h}{hvc_ch}*log(Pi/(1-Pi))
-    logHiddenVarProbs = np.sum(hiddenVarConfs, axis=1)*np.log(Pi/(1-Pi))
+    # logPriors_c = sum{h}{hvc_ch}*log(Pi/(1-Pi))
+    logPriors = np.sum(hiddenVarConfs, axis=1)*np.log(Pi/(1-Pi))
     # return pseudoLogJoints_cn
-    return np.transpose(logHiddenVarProbs + logPriors)
+    return np.transpose(logPriors + logPy)
 
 
 def meanPosterior(g, pseudoLogJoints, samples):
