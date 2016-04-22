@@ -6,16 +6,31 @@ import numpy as np
 import matplotlib.pyplot as plt
 from math import sqrt
 import argparse
+from sys import exit
 
 # Define parser
 parser = argparse.ArgumentParser()
-parser.add_argument('-t', '--truth', dest="truep", required=True,
+parser.add_argument('-p', '--parFiles', dest='parFile',
+                    help="""The body of the names of the files containing the
+parameters. The samples file will be set to
+'sPARFILE.npy'. The true parameters file will be set
+to 'tPARFILE.npz'. The learned parameters file will be set to 
+'lPARFILE.npz'. This is a commodity option to save
+typing. This option is overridden by the -s, -t and -l options
+if they are present.""")
+parser.add_argument('-t', '--truth', dest="truep",
                     help='the npz file containing the true parameters')
-parser.add_argument('-l', '--learned', dest="learnedp", required=True,
+parser.add_argument('-l', '--learned', dest="learnedp",
                     help='the npz file containing the learned parameters')
-parser.add_argument('-s', '--samples', dest="samples", required=True,
+parser.add_argument('-s', '--samples', dest="samples",
                     help='the npy file containing the samples')
 args = parser.parse_args()
+if not args.parFile:
+    if not (args.samples and args.truep and args.learnedp):
+        print """Please provide samples, true and learned parameters filenames.
+The -p option can be used as a shorthand if filenames have the same body.
+Please use the -h option for more information"""
+        exit(1)
 
 def clear_axes(plot):
     axes = plot.get_axes()
@@ -33,11 +48,11 @@ def compare(A, B):
     return cmp(Ascore,Bscore)
 
 # Load true parameters
-tp = np.load(args.truep)
+tp = np.load(args.truep or ('t' + args.parFile + '.npz'))
 # Load log-likelihood and learned parameters
-lp = np.load(args.learnedp)
+lp = np.load(args.learnedp or ('l' + args.parFile + '.npz'))
 # Samples
-samples = np.load(args.samples)
+samples = np.load(args.samples or ('s' + args.parFile + '.npy'))
 # Plot log-likelihood and true log-likelihood
 plt.figure()
 plt.plot(range(lp["logLs"].size),

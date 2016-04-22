@@ -1,32 +1,48 @@
 #!/usr/bin/env python
 # EM learning algorithm for the Noisy-OR
 # author: blue, 29/03/2016
-# TODO branch with weights show in real-time
+# TODO branch with weights shown in real-time
 # TODO add "-p" option as shortcut for all other options
 # TODO branch with version that allows multiple Pi's
 # TODO branch with TV-EM
+# TODO order bar matrices according to p(s_h' | y = W_dh). Delete sorting
+#      routine in plotNoisyOR
 
 import numpy as np
 import signal
 import argparse
+from sys import exit
 
 np.set_printoptions(precision=14, suppress=True, threshold=10000)
 
 # Define option parser
 parser = argparse.ArgumentParser()
-parser.add_argument('-s', '--samplesfile', required=True, dest="sFile",
-                    help='the npy file containing the samples')
 parser.add_argument('-j', '--nhiddenvars', required=True, dest='nHiddenVars',
                     type=int, help='number of hidden variables')
-parser.add_argument('-t', '--tparamsfile', required=True, dest="tFile",
+parser.add_argument('-p', '--parFiles', dest='parFile',
+                    help="""The body of the names of the files containing the
+parameters. The samples file will be set to
+'sPARFILE.npy' while the true parameters file will be set
+to 'tPARFILE.npz'. This is a commodity option to save
+typing. This option is overridden by the -s and -t options
+if they are present.""")
+parser.add_argument('-s', '--samplesfile', dest="sFile",
+                    help='the npy file containing the samples')
+parser.add_argument('-t', '--tparamsfile', dest="tFile",
                     help='the npz file containing the true parameters')
 args = parser.parse_args()
+if not args.parFile:
+    if not (args.sFile and args.tFile):
+        print """Please provide both samples and true prameters filenames.
+The -p option can be used as a shorthand if filenames have the same body.
+Please use the -h option for more information"""
+        exit(1)
 
 
 def pseudoLogJoint(Pi, W, hiddenVarConfs, samples, Ws):
     """Takes the parameters and returns a matrix M[hiddenVarConfs][sample].
-    Each element of the matrix is the pseudo-log-joint probablity \
-                    B*log(p(hiddenVarConf, sample))"""
+Each element of the matrix is the pseudo-log-joint probablity \
+B*log(p(hiddenVarConf, sample))"""
 
     # prods_dc = 1 - Wbar_dc = prod{h}{1-W_dh*s_ch}
     prods = np.prod(Ws, axis=1)
@@ -87,12 +103,17 @@ def signalHandler(signal, frame):
 
 
 # Set problem data
-nHiddenVars = args.nHiddenVars # Number of hidden variables assumed present
-samples = np.load(args.sFile)
+# Number of hidden variables assumed present
+nHiddenVars = args.nHiddenVars
+# File containing the samples/datapoints
+samples = np.load(args.sFile or ('s' + args.parFile + '.npy'))
+# deltaSamples is a quantity useful for later calculations
 # deltaSamples_n is 1 if samples_nd == 0 for each d, 0 otherwise
 deltaSamples = np.array(~np.any(samples, axis=1), dtype=int)
-trueParams = np.load(args.tFile) # The ground-truth parameters
-eps = 1e-13 # Minimum value allowed for synaptic weights (max is 1-eps)
+# The ground-truth parameters
+trueParams = np.load(args.tFile or ('t' + args.parFile + '.npz'))
+# Minimum value allowed for synaptic weights (max is 1-eps)
+eps = 1e-13
 
 # Create array containing all possible hidden variables configurations
 hiddenVarConfs = np.array([[0],[1]], dtype=int)
@@ -131,7 +152,7 @@ trueLogL = logL(pseudoLogJoint(trueParams["Pi"],
                  trueHiddenVarConfs.shape[1],
                  trueParams["Pi"])
 
-# Ctrl-C now does not interrupts execution, just sets done = True
+# From now on Ctrl-C does not interrupt execution, just sets done = True
 signal.signal(signal.SIGINT, signalHandler)
 done = False
 counter = 0;
