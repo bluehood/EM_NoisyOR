@@ -2,6 +2,11 @@
 # generate samples from a Noisy-OR mixture
 # author: blue, 29/03/2016
 
+# This script generates nSamples samples of dimension dimSample with a noisy-OR
+# generative model. The priors are taken all equal to 2/nHiddenVars and the
+# weight matrices are single horizontal and vertical bars. The samples will
+# therefore consist of a superposition of an average of 2 bars, with noise.
+
 import numpy as np
 from scipy.stats import bernoulli
 from math import sqrt
@@ -9,11 +14,11 @@ import argparse
 
 # Defiine parser
 parser = argparse.ArgumentParser()
-parser.add_argument('-j', '--nHiddenVars', default=8, dest='nHiddenVars',
+parser.add_argument('-j', '--nHiddenVars', default=10, dest='nHiddenVars',
                     type=int, help='number of hidden variables')
-parser.add_argument('-n', '--nsamples', default=500, dest='nSamples', type=int,
+parser.add_argument('-n', '--nsamples', default=1000, dest='nSamples', type=int,
                     help='number of samples to generate')
-parser.add_argument('-d', '--dimSample', default=16, dest='dimSample', type=int,
+parser.add_argument('-d', '--dimSample', default=25, dest='dimSample', type=int,
                     help='linear dimension of each generated sample, i.e.\
                           size of output array')
 args = parser.parse_args()
@@ -23,7 +28,7 @@ nSamples = args.nSamples
 nHiddenVars = args.nHiddenVars
 dimSample = args.dimSample
 
-# Each W[h,:] is seen as a sqrt(dimSample)xsqrt(dimSample) matrix
+# Each W[:,h] is seen as a sqrt(dimSample)xsqrt(dimSample) matrix
 # e.g. matrices will be 5x5 if dimSample==25
 # Each of this matrices has one vertical or horizontal bar
 # The number of matrices should be equal to the number of hidden variables
