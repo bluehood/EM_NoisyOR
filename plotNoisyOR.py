@@ -54,8 +54,8 @@ samples = samples[:12]
 plt.figure()
 for nPlot in range(12):
     plt.subplot(4, 3, nPlot+1)
-    plot = plt.pcolor(samples[nPlot].reshape(dimMatrix, dimMatrix),
-                 cmap="Greys")
+    plot = plt.imshow(samples[nPlot].reshape(dimMatrix, dimMatrix),
+                      cmap="Greys", interpolation='none')
     clear_axes(plot)
     if nPlot == 1:
             plt.title('First 12 samples')
@@ -76,24 +76,25 @@ matrices = [ np.transpose(lp["initW"]).reshape(lp["W"].shape[1],
 matrices[1] = np.array(sorted(matrices[1], cmp=compare))
 matrices[2] = np.array(sorted(matrices[2], cmp=compare))
 titles = ("Initial weights", "Learned weights", "True weights")
-plt.figure()
+plt.figure(figsize=(plt.rcParams['figure.figsize'][0], plt.rcParams['figure.figsize'][1]*2))
 for nMat in range(nMatrices):
     for i in range(3):
         if matrices[i].shape[0] > nMat:
             plt.subplot(nMatrices, 3, nMat*3+i+1)
-            plot = plt.pcolor(matrices[i][nMat], cmap="Greys", vmin=0, vmax=1)
+            plot = plt.imshow(matrices[i][nMat], cmap="Greys", aspect='equal',
+                              vmin=0, vmax=1, interpolation='none')
             clear_axes(plot)
             if nMat == 0:
                 plt.title(titles[i])
         
 plt.figure()
-plot = plt.pcolor(np.vstack((lp["Pi"],tp["Pi"])),
-           vmin=0., vmax=.5)
+plot = plt.imshow(np.vstack((lp["Pi"],tp["Pi"])), interpolation='none',
+                  vmin=0., vmax=.5)
 plt.colorbar()
 axes = plot.get_axes()
 axes.set_xticks([])
 axes.set_xticklabels([])
-axes.set_yticks([0.5, 1.5])
+axes.set_yticks([0., 1.])
 axes.set_yticklabels(["learned", "ground-truth"])
 plt.title("Subpopulations' probabilities")
 
