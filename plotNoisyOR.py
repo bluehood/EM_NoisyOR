@@ -91,7 +91,8 @@ matrices = [ np.transpose(lp["initW"]).reshape(lp["W"].shape[1],
 matrices[1] = np.array(sorted(matrices[1], cmp=compare))
 matrices[2] = np.array(sorted(matrices[2], cmp=compare))
 titles = ("Initial weights", "Learned weights", "True weights")
-plt.figure(figsize=(plt.rcParams['figure.figsize'][0], plt.rcParams['figure.figsize'][1]*2))
+plt.figure(figsize=(plt.rcParams['figure.figsize'][0],
+                    plt.rcParams['figure.figsize'][1]*2))
 for nMat in range(nMatrices):
     for i in range(3):
         if matrices[i].shape[0] > nMat:
@@ -103,14 +104,15 @@ for nMat in range(nMatrices):
                 plt.title(titles[i])
         
 plt.figure()
-plot = plt.imshow(np.vstack((lp["Pi"],tp["Pi"])), interpolation='none',
+plt.subplot(2,1,1)
+plot = plt.imshow(np.atleast_2d(lp["Pi"]), interpolation='none',
                   vmin=0., vmax=.5)
-plt.colorbar()
-axes = plot.get_axes()
-axes.set_xticks([])
-axes.set_xticklabels([])
-axes.set_yticks([0., 1.])
-axes.set_yticklabels(["learned", "ground-truth"])
-plt.title("Subpopulations' probabilities")
+clear_axes(plot)
+plt.title("Subpopulations' probabilities (learned over ground-truth)")
+plt.subplot(2,1,2)
+plot = plt.imshow(np.atleast_2d(tp["Pi"]), interpolation='none',
+                  vmin=0., vmax=.5)
+clear_axes(plot)
+# FIXME plt.colorbar()
 
 plt.show()

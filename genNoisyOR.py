@@ -44,12 +44,12 @@ for c in range(nBars/2):
     W[[ i + c*dimMatrix for i in range(dimMatrix) ], c + nBars/2 ] = value
 
 # We want an average of 2 bars/sample
-Pi = 2./nHiddenVars
+Pi = np.array([ 2./nHiddenVars ]*nHiddenVars)
 
 samples = []
 for i in range(nSamples):
     # Generate hidden variables array s
-    s = bernoulli.rvs(Pi, size=nHiddenVars)
+    s = np.array([ bernoulli.rvs(p) for p in Pi ])
     # Evaluate array of bernoulli probabilities for the samples y
     yProb = 1 - np.prod(1 - W*s, axis=1)
     # produce a sample and put it in samples

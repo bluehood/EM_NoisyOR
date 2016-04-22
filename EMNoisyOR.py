@@ -2,7 +2,6 @@
 # EM learning algorithm for the Noisy-OR
 # author: blue, 29/03/2016
 # TODO branch with weights shown in real-time
-# TODO branch with version that allows multiple Pi's
 # TODO branch with TV-EM
 # TODO order bar matrices according to p(s_h' | y = W_dh). Delete sorting
 #      routine in plotNoisyOR
@@ -49,8 +48,8 @@ B*log(p(hiddenVarConf, sample))"""
     # logPy_nc = sum{d}{y_nd*log(1/prods_dc - 1) + log(prods_dc)}
     logPy = np.dot(samples, np.log(1/prods - 1)) + \
                 np.sum(np.log(prods), axis=0)
-    # logPriors_c = sum{h}{hvc_ch}*log(Pi/(1-Pi))
-    logPriors = np.sum(hiddenVarConfs, axis=1)*np.log(Pi/(1-Pi))
+    # logPriors_c = sum{h}{hvc_ch*log(Pi_h/(1-Pi_h))}
+    logPriors = np.sum(hiddenVarConfs*np.log(Pi/(1-Pi)), axis=1)
     # return pseudoLogJoints_cn
     return np.transpose(logPriors + logPy)
 
@@ -84,11 +83,11 @@ def meanPosterior(g, pseudoLogJoints, samples):
 def logL(pseudoLogJoints, deltaSamples, nHiddenVars, Pi):
     """Evaluate log-likelihood logL
     logL = sum{n}{log(prod{d}{delta(y_nd)} + \
-            sum{c}{exp(pseudoLogJoints_cn)}} + N*H*log(1-Pi)"""
+            sum{c}{exp(pseudoLogJoints_cn)}} + N*sum{h}{log(1-Pi_h)}"""
 
     return np.sum(np.log(deltaSamples + \
            np.sum(np.exp(pseudoLogJoints), axis=0))) + \
-           deltaSamples.size*nHiddenVars*np.log(1-Pi)
+           deltaSamples.size*np.sum(np.log(1-Pi))
 
 
 def debugPrint(pseudoLogJoints, Pi, W):
@@ -134,7 +133,7 @@ trueHiddenVarConfs = np.delete(trueHiddenVarConfs, 0, 0)
 
 # Initialise parameters to random values
 # TODO use smarter initial values for the parameters
-Pi = np.random.rand()
+Pi = np.random.rand(nHiddenVars)
 W = np.random.rand(samples.shape[1], nHiddenVars) # W[dimSample][nHiddenVars]
 initW = W # save initial values of the parameters for visualisation purposes
 
@@ -175,11 +174,10 @@ for i in range(100):
     logLs += (logL(pseudoLogJoints, deltaSamples, nHiddenVars, Pi),)
 
     # M-step
-    # Pi = sum{n}{<sum{h}{hiddenVarConfs_ch}>} / (N*H)
-    Pi = np.sum(meanPosterior(np.sum(hiddenVarConfs, axis=1),
+    # Pi_h = sum{n}{<hiddenVarConfs_hc>} / N
+    Pi = np.sum(meanPosterior(np.transpose(hiddenVarConfs),
                               pseudoLogJoints,
-                              samples)) / \
-            (samples.shape[0]*nHiddenVars)
+                              samples), axis=1) / samples.shape[0]
 
     # Wtilde_dhc = Prod{h'!=h}{1 - W_dj'*hiddenVarConfs_cj'}
     # (Wtilde = np.fromfunction is much slower than a loop over j + np.stack)
