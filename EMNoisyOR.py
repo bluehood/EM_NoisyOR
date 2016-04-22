@@ -2,7 +2,6 @@
 # EM learning algorithm for the Noisy-OR
 # author: blue, 29/03/2016
 # TODO branch with weights shown in real-time
-# TODO add "-p" option as shortcut for all other options
 # TODO branch with version that allows multiple Pi's
 # TODO branch with TV-EM
 # TODO order bar matrices according to p(s_h' | y = W_dh). Delete sorting
@@ -13,6 +12,7 @@ import signal
 import argparse
 from sys import exit
 
+################ INITIAL SETUP #################
 np.set_printoptions(precision=14, suppress=True, threshold=10000)
 
 # Define option parser
@@ -79,6 +79,7 @@ def meanPosterior(g, pseudoLogJoints, samples):
     return np.dot(g, np.exp(pseudoLogJoints + B)) / \
             (np.sum(np.exp(pseudoLogJoints + B), axis=0) + \
                 deltaSamples*np.exp(B))
+
 
 def logL(pseudoLogJoints, deltaSamples, nHiddenVars, Pi):
     """Evaluate log-likelihood logL
@@ -152,6 +153,8 @@ trueLogL = logL(pseudoLogJoint(trueParams["Pi"],
                  trueHiddenVarConfs.shape[1],
                  trueParams["Pi"])
 
+
+################ START LEARNING #################
 # From now on Ctrl-C does not interrupt execution, just sets done = True
 signal.signal(signal.SIGINT, signalHandler)
 done = False
@@ -195,6 +198,8 @@ for i in range(100):
         print "logL[" + str(counter) + "] = ", logLs[-1]
     counter += 1
 
+
+################ WRAP-UP OPERATIONS #################
 # Evaluate max difference with true values of a bars test
 smallval = np.min(trueParams["W"])
 bigval = np.max(trueParams["W"])
