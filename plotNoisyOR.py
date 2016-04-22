@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # Plot log-likelihood and compare true parameters with learned parameters
 # author: blue, 29/03/2016
-# TODO make it possible to have different numbers of true and learned matrices
-# TODO sort learned matrices to show besides the corresponding true matrix
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -25,6 +23,14 @@ def clear_axes(plot):
     axes.set_xticks([])
     axes.set_yticklabels([])
     axes.set_yticks([])
+
+
+def compare(A, B):
+    """Ad-hoc matrix comparison that uses a metric useful to
+    list bars matrices in an ordered fashion"""
+    Ascore = np.sum(np.rint(A)*np.exp2(np.arange(A.size)).reshape(A.shape))
+    Bscore = np.sum(np.rint(B)*np.exp2(np.arange(B.size)).reshape(B.shape))
+    return cmp(Ascore,Bscore)
 
 # Load true parameters
 tp = np.load(args.truep)
@@ -67,6 +73,8 @@ matrices = [ np.transpose(lp["initW"]).reshape(lp["W"].shape[1],
              np.transpose(tp["W"]).reshape(tp["W"].shape[1],
                                            dimMatrix,
                                            dimMatrix) ]
+matrices[1] = np.array(sorted(matrices[1], cmp=compare))
+matrices[2] = np.array(sorted(matrices[2], cmp=compare))
 titles = ("Initial weights", "Learned weights", "True weights")
 plt.figure()
 for nMat in range(nMatrices):
