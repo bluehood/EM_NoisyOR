@@ -161,6 +161,8 @@ done = False
 counter = 0;
 logLs = () # The log-likelihoods evaluated at each step
 for i in range(100):
+    if done:
+        break
 # Alternatively:
 # while not done:
     # Ws are values needed both in the E and M-step, we evaluate them once here
