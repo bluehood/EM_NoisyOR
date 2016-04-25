@@ -2,8 +2,6 @@
 # EM learning algorithm for the Noisy-OR
 # author: blue, 29/03/2016
 # TODO branch with weights shown in real-time
-# TODO branch with version that allows multiple Pi's
-# TODO branch with TV-EM
 # TODO order bar matrices according to p(s_h' | y = W_dh). Delete sorting
 #      routine in plotNoisyOR
 
@@ -136,8 +134,8 @@ trueHiddenVarConfs = np.delete(trueHiddenVarConfs, 0, 0)
 # TODO use smarter initial values for the parameters
 Pi = np.random.rand()
 W = np.random.rand(samples.shape[1], nHiddenVars) # W[dimSample][nHiddenVars]
-initW = W # save initial values of the parameters for visualisation purposes
-
+# TODO we could just write initW to the file instead of keeping it in memory
+initW = np.copy(W) # save initial values of the parameters
 # Alternatively: initialise parameters to the ground-truth values
 # Pi = trueParams["Pi"]
 # W = trueParams["W"]
