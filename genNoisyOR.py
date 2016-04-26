@@ -18,7 +18,7 @@ parser.add_argument('-j', '--nHiddenVars', default=10, dest='nHiddenVars',
                     type=int, help='number of hidden variables')
 parser.add_argument('-n', '--nsamples', default=1000, dest='nSamples', type=int,
                     help='number of samples to generate')
-parser.add_argument('-d', '--dimSample', default=25, dest='dimSample', type=int,
+parser.add_argument('-d', '--dimSample', default=0, dest='dimSample', type=int,
                     help='linear dimension of each generated sample, i.e.\
                           size of output array')
 args = parser.parse_args()
@@ -27,6 +27,8 @@ args = parser.parse_args()
 nSamples = args.nSamples
 nHiddenVars = args.nHiddenVars
 dimSample = args.dimSample
+if not dimSample:
+    dimSample = (nHiddenVars/2)**2
 
 # Each W[:,h] is seen as a sqrt(dimSample)xsqrt(dimSample) matrix
 # e.g. matrices will be 5x5 if dimSample==25
