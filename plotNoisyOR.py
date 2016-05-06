@@ -27,9 +27,9 @@ parser.add_argument('-s', '--dps', dest="dps",
 args = parser.parse_args()
 if not args.parFile:
     if not (args.dps and args.truep and args.learnedp):
-        print """Please provide data-points, true and learned parameters filenames.
-The -p option can be used as a shorthand if filenames have the same body.
-Please use the -h option for more information"""
+        print """Please provide data-points, true and learned parameters
+filenames. The -p option can be used as a shorthand if filenames have the same
+body. Please use the -h option for more information"""
         exit(1)
 
 def clear_axes(plot):
@@ -42,7 +42,7 @@ def clear_axes(plot):
 
 def compare(A, B):
     """Ad-hoc matrix comparison that uses a metric useful to
-    list bars matrices in an ordered fashion"""
+list bars matrices in an ordered fashion"""
     Ascore = np.sum(np.rint(A)*np.exp2(np.arange(A.size)).reshape(A.shape))
     Bscore = np.sum(np.rint(B)*np.exp2(np.arange(B.size)).reshape(B.shape))
     return cmp(Ascore,Bscore)
@@ -91,7 +91,8 @@ matrices = [ np.transpose(lp["initW"]).reshape(lp["W"].shape[1],
 matrices[1] = np.array(sorted(matrices[1], cmp=compare))
 matrices[2] = np.array(sorted(matrices[2], cmp=compare))
 titles = ("Initial weights", "Learned weights", "True weights")
-plt.figure(figsize=(plt.rcParams['figure.figsize'][0], plt.rcParams['figure.figsize'][1]*2))
+plt.figure(figsize=(plt.rcParams['figure.figsize'][0],
+                    plt.rcParams['figure.figsize'][1]*2))
 for nMat in range(nMatrices):
     for i in range(3):
         if matrices[i].shape[0] > nMat:
