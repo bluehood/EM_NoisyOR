@@ -125,7 +125,7 @@ deltaSamples = np.array(~np.any(samples, axis=1), dtype=int)
 # The ground-truth parameters
 trueParams = np.load(args.tFile or ('t' + args.parFile + '.npz'))
 # Minimum value allowed for synaptic weights (max is 1-eps)
-eps = 1e-13
+eps = 1e-2
 
 # Create array containing all possible hidden variables configurations
 hiddenVarConfs = np.array([[0],[1]], dtype=int)
@@ -143,15 +143,16 @@ for i in range(trueParams["W"].shape[1]-1):
 hiddenVarConfs = np.delete(hiddenVarConfs, 0, 0)
 trueHiddenVarConfs = np.delete(trueHiddenVarConfs, 0, 0)
 
-# Initialise parameters to random values
-# TODO use smarter initial values for the parameters
-Pi = np.random.rand()
-W = np.random.rand(samples.shape[1], nHiddenVars) # W[dimSample][nHiddenVars]
-# TODO we could just write initW to the file instead of keeping it in memory
-initW = np.copy(W) # save initial values of the parameters
+# Initialise parameters
+Pi = 1./nHiddenVars
+W = np.random.rand(samples.shape[1], nHiddenVars)
+np.clip(W, eps, 1-eps, out=W)
 # Alternatively: initialise parameters to the ground-truth values
 # Pi = trueParams["Pi"]
 # W = trueParams["W"]
+
+# TODO we could just write initW to the file instead of keeping it in memory
+initW = np.copy(W) # save initial values of the parameters
 
 # Evaluate true log-likelihood from true parameters (for consistency checks)
 trueWs = 1 - np.einsum('ij,kj->ijk', trueParams["W"], trueHiddenVarConfs)
