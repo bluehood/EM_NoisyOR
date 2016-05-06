@@ -37,6 +37,19 @@ Please use the -h option for more information"""
         exit(1)
 
 
+def evaluateWtilde(Ws):
+    # Wtilde_dhc = Prod{h'!=h}{1 - W_dj'*hiddenVarConfs_cj'}
+    # These three lines work by multiplying cumulative products of Ws in both
+    # directions (from beginning to end of each row and from end to beginning)
+    # in a smart way. If Ws = array([a,b,c]), the contents of ret would be,
+    # for each of the lines, ret == [1,1,1], then ret == [1, a, ab], and
+    # finally ret == [1, a, ab]*[cb, c, 1] == [cb, ac, ab]
+    ret = np.ones_like(Ws)
+    np.cumprod(Ws[:, :-1], axis=1, out=ret[:, 1:])
+    ret[:, :-1] *= np.cumprod(Ws[:, :0:-1], axis=1)[:, ::-1]
+    return ret
+
+
 def pseudoLogJoint(Pi, W, hiddenVarConfs, samples, Ws):
     """Takes the parameters and returns a matrix M[hiddenVarConfs][sample].
 Each element of the matrix is the pseudo-log-joint probablity \
@@ -179,10 +192,7 @@ for i in range(100):
                               samples)) / \
             (samples.shape[0]*nHiddenVars)
 
-    # Wtilde_dhc = Prod{h'!=h}{1 - W_dj'*hiddenVarConfs_cj'}
-    # (Wtilde = np.fromfunction is much slower than a loop over j + np.stack)
-    Wtilde = np.stack([ np.prod(np.delete(Ws, j, axis=1), axis=1) \
-                        for j in range(Ws.shape[1]) ], axis=1)
+    Wtilde = evaluateWtilde(Ws)
     denominators = 1 - Wtilde*Ws # faster than np.prod(Ws, axis=1) + newaxis
     denominators = (1 - denominators)*denominators
     D = np.einsum('ijk,kj->ijk', Wtilde, hiddenVarConfs) / denominators
