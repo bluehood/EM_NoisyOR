@@ -19,19 +19,19 @@ parser.add_argument('-j', '--nhiddenvars', required=True, dest='nHiddenVars',
                     type=int, help='number of hidden variables')
 parser.add_argument('-p', '--parFiles', dest='parFile',
                     help="""The body of the names of the files containing the
-parameters. The samples file will be set to
+parameters. The data-points file will be set to
 'sPARFILE.npy' while the true parameters file will be set
 to 'tPARFILE.npz'. This is a commodity option to save
 typing. This option is overridden by the -s and -t options
 if they are present.""")
-parser.add_argument('-s', '--samplesfile', dest="sFile",
-                    help='the npy file containing the samples')
+parser.add_argument('-s', '--dpsfile', dest="sFile",
+                    help='the npy file containing the data-points')
 parser.add_argument('-t', '--tparamsfile', dest="tFile",
                     help='the npz file containing the true parameters')
 args = parser.parse_args()
 if not args.parFile:
     if not (args.sFile and args.tFile):
-        print """Please provide both samples and true prameters filenames.
+        print """Please provide both data-points and true prameters filenames.
 The -p option can be used as a shorthand if filenames have the same body.
 Please use the -h option for more information"""
         exit(1)
@@ -50,15 +50,15 @@ def evaluateWtilde(Ws):
     return ret
 
 
-def pseudoLogJoint(Pi, W, hiddenVarConfs, samples, Ws):
-    """Takes the parameters and returns a matrix M[hiddenVarConfs][sample].
+def pseudoLogJoint(Pi, W, hiddenVarConfs, dps, Ws):
+    """Takes the parameters and returns a matrix M[hiddenVarConfs][dp].
 Each element of the matrix is the pseudo-log-joint probablity \
-B*log(p(hiddenVarConf, sample))"""
+B*log(p(hiddenVarConf, dp))"""
 
     # prods_dc = 1 - Wbar_dc = prod{h}{1-W_dh*s_ch}
     prods = np.prod(Ws, axis=1)
     # logPy_nc = sum{d}{y_nd*log(1/prods_dc - 1) + log(prods_dc)}
-    logPy = np.dot(samples, np.log(1/prods - 1)) + \
+    logPy = np.dot(dps, np.log(1/prods - 1)) + \
                 np.sum(np.log(prods), axis=0)
     # logPriors_c = sum{h}{hvc_ch}*log(Pi/(1-Pi))
     logPriors = np.sum(hiddenVarConfs, axis=1)*np.log(Pi/(1-Pi))
@@ -66,19 +66,19 @@ B*log(p(hiddenVarConf, sample))"""
     return np.transpose(logPriors + logPy)
 
 
-def meanPosterior(g, pseudoLogJoints, samples):
+def meanPosterior(g, pseudoLogJoints, dps):
     """Takes a (multidimensional) array g and returns its mean weighted
-    over the posterior probabilities of each sample.
+    over the posterior probabilities of each data-point.
     The array is assumed to have the axis over which the mean is to
     be performed as last.
 
     An array with the same number of dimensions of g is returned, but now
     the last axis represents the mean of g relative to each different
-    sample.
+    data-point.
     
     The calculation performed is equivalent to np.dot(a, np.transpose(q))
     wher q_cn are the posterior probabilities of each hidden variable
-    configuration c give sample n"""
+    configuration c give data-point n"""
 
     # Evaluate constants B_n by which we can translate pseudoLogJoints
     # TODO check grafically whether 20 is a good magic number
@@ -89,17 +89,17 @@ def meanPosterior(g, pseudoLogJoints, samples):
     #   (sum{c}{exp(pseudoLogJoints_cn + B)} + prod{d}{delta(y_nd)*exp(B))
     return np.dot(g, np.exp(pseudoLogJoints + B)) / \
             (np.sum(np.exp(pseudoLogJoints + B), axis=0) + \
-                deltaSamples*np.exp(B))
+                deltaDps*np.exp(B))
 
 
-def logL(pseudoLogJoints, deltaSamples, nHiddenVars, Pi):
+def logL(pseudoLogJoints, deltaDps, nHiddenVars, Pi):
     """Evaluate log-likelihood logL
     logL = sum{n}{log(prod{d}{delta(y_nd)} + \
             sum{c}{exp(pseudoLogJoints_cn)}} + N*H*log(1-Pi)"""
 
-    return np.sum(np.log(deltaSamples + \
+    return np.sum(np.log(deltaDps + \
            np.sum(np.exp(pseudoLogJoints), axis=0))) + \
-           deltaSamples.size*nHiddenVars*np.log(1-Pi)
+           deltaDps.size*nHiddenVars*np.log(1-Pi)
 
 
 def debugPrint(pseudoLogJoints, Pi, W):
@@ -117,11 +117,11 @@ def signalHandler(signal, frame):
 # Set problem data
 # Number of hidden variables assumed present
 nHiddenVars = args.nHiddenVars
-# File containing the samples/datapoints
-samples = np.load(args.sFile or ('s' + args.parFile + '.npy'))
-# deltaSamples is a quantity useful for later calculations
-# deltaSamples_n is 1 if samples_nd == 0 for each d, 0 otherwise
-deltaSamples = np.array(~np.any(samples, axis=1), dtype=int)
+# File containing the data-points/data-points
+dps = np.load(args.sFile or ('s' + args.parFile + '.npy'))
+# deltaDps is a quantity useful for later calculations
+# deltaDps_n is 1 if dps_nd == 0 for each d, 0 otherwise
+deltaDps = np.array(~np.any(dps, axis=1), dtype=int)
 # The ground-truth parameters
 trueParams = np.load(args.tFile or ('t' + args.parFile + '.npz'))
 # Minimum value allowed for synaptic weights (max is 1-eps)
@@ -145,7 +145,7 @@ trueHiddenVarConfs = np.delete(trueHiddenVarConfs, 0, 0)
 
 # Initialise parameters
 Pi = 1./nHiddenVars
-W = np.random.rand(samples.shape[1], nHiddenVars)
+W = np.random.rand(dps.shape[1], nHiddenVars)
 np.clip(W, eps, 1-eps, out=W)
 # Alternatively: initialise parameters to the ground-truth values
 # Pi = trueParams["Pi"]
@@ -159,9 +159,9 @@ trueWs = 1 - np.einsum('ij,kj->ijk', trueParams["W"], trueHiddenVarConfs)
 trueLogL = logL(pseudoLogJoint(trueParams["Pi"],
                                trueParams["W"],
                                trueHiddenVarConfs,
-                               samples,
+                               dps,
                                trueWs),
-                 deltaSamples,
+                 deltaDps,
                  trueHiddenVarConfs.shape[1],
                  trueParams["Pi"])
 
@@ -181,26 +181,26 @@ for i in range(100):
     # Ws_dhc = 1 - (W_dh * hiddenVarConfs_ch)
     Ws = 1 - np.einsum('ij,kj->ijk', W, hiddenVarConfs) 
     # E-step: evaluate pseudo-log-joint probabilities
-    pseudoLogJoints = pseudoLogJoint(Pi, W, hiddenVarConfs, samples, Ws)
+    pseudoLogJoints = pseudoLogJoint(Pi, W, hiddenVarConfs, dps, Ws)
 
     # Evaluate new likelihood and append it to the tuple
-    logLs += (logL(pseudoLogJoints, deltaSamples, nHiddenVars, Pi),)
+    logLs += (logL(pseudoLogJoints, deltaDps, nHiddenVars, Pi),)
 
     # M-step
     # Pi = sum{n}{<sum{h}{hiddenVarConfs_ch}>} / (N*H)
     Pi = np.sum(meanPosterior(np.sum(hiddenVarConfs, axis=1),
                               pseudoLogJoints,
-                              samples)) / \
-            (samples.shape[0]*nHiddenVars)
+                              dps)) / \
+            (dps.shape[0]*nHiddenVars)
 
     Wtilde = evaluateWtilde(Ws)
     denominators = 1 - Wtilde*Ws # faster than np.prod(Ws, axis=1) + newaxis
     denominators = (1 - denominators)*denominators
     D = np.einsum('ijk,kj->ijk', Wtilde, hiddenVarConfs) / denominators
     Dtilde = np.einsum('ijk,ki->ij',
-                       meanPosterior(D, pseudoLogJoints, samples),
-                       samples - 1)
-    Ctilde = np.sum(meanPosterior(Wtilde*D, pseudoLogJoints, samples), axis=2)
+                       meanPosterior(D, pseudoLogJoints, dps),
+                       dps - 1)
+    Ctilde = np.sum(meanPosterior(Wtilde*D, pseudoLogJoints, dps), axis=2)
     W = 1 + Dtilde/Ctilde
     np.clip(W, eps, 1-eps, out=W)
 
@@ -219,7 +219,7 @@ bigdiff = np.abs(W[W>=0.5] - bigval)
 Werror = np.max(np.append(smalldiff, bigdiff))
 
 # Save results to file and print out last parameter values
-filename = "l" + str(samples.shape[0])
+filename = "l" + str(dps.shape[0])
 np.savez(filename, Pi=Pi, W=W,
          logLs=logLs, trueLogL=trueLogL, initW=initW)
 print "end Pi\n", Pi

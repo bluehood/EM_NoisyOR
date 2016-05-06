@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-# generate samples from a Noisy-OR mixture
+# generate data-points from a Noisy-OR mixture
 # author: blue, 29/03/2016
 
-# This script generates nSamples samples of dimension dimSample with a noisy-OR
+# This script generates ndps data-points of dimension dimdp with a noisy-OR
 # generative model. The priors are taken all equal to 2/nHiddenVars and the
-# weight matrices are single horizontal and vertical bars. The samples will
+# weight matrices are single horizontal and vertical bars. The data-points will
 # therefore consist of a superposition of an average of 2 bars, with noise.
 
 import numpy as np
@@ -16,26 +16,26 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('-j', '--nHiddenVars', default=10, dest='nHiddenVars',
                     type=int, help='number of hidden variables')
-parser.add_argument('-n', '--nsamples', default=1000, dest='nSamples', type=int,
-                    help='number of samples to generate')
-parser.add_argument('-d', '--dimSample', default=0, dest='dimSample', type=int,
-                    help='linear dimension of each generated sample, i.e.\
+parser.add_argument('-n', '--ndps', default=1000, dest='ndps', type=int,
+                    help='number of data-points to generate')
+parser.add_argument('-d', '--dimdp', default=0, dest='dimdp', type=int,
+                    help='linear dimension of each generated data-point, i.e.\
                           size of output array')
 args = parser.parse_args()
 
 # Define parameters
-nSamples = args.nSamples
+ndps = args.ndps
 nHiddenVars = args.nHiddenVars
-dimSample = args.dimSample
-if not dimSample:
-    dimSample = (nHiddenVars/2)**2
+dimdp = args.dimdp
+if not dimdp:
+    dimdp = (nHiddenVars/2)**2
 
-# Each W[:,h] is seen as a sqrt(dimSample)xsqrt(dimSample) matrix
-# e.g. matrices will be 5x5 if dimSample==25
+# Each W[:,h] is seen as a sqrt(dimdp)xsqrt(dimdp) matrix
+# e.g. matrices will be 5x5 if dimdp==25
 # Each of this matrices has one vertical or horizontal bar
 # The number of matrices should be equal to the number of hidden variables
-W = np.ones((dimSample, nHiddenVars))*0.1
-dimMatrix = int(sqrt(dimSample))
+W = np.ones((dimdp, nHiddenVars))*0.1
+dimMatrix = int(sqrt(dimdp))
 nBars = min(nHiddenVars, 2*dimMatrix)
 value = 0.8
 # Paint vertical bars
@@ -45,24 +45,24 @@ for c in range(nBars/2):
 for c in range(nBars/2):
     W[[ i + c*dimMatrix for i in range(dimMatrix) ], c + nBars/2 ] = value
 
-# We want an average of 2 bars/sample
+# We want an average of 2 bars/data-point
 Pi = 2./nHiddenVars
 
-samples = []
-for i in range(nSamples):
+dps = []
+for i in range(ndps):
     # Generate hidden variables array s
     s = bernoulli.rvs(Pi, size=nHiddenVars)
-    # Evaluate array of bernoulli probabilities for the samples y
+    # Evaluate array of bernoulli probabilities for the data-points y
     yProb = 1 - np.prod(1 - W*s, axis=1)
-    # produce a sample and put it in samples
-    samples.append([ bernoulli.rvs(yProb[d]) for d in range(dimSample) ])
+    # produce a data-point and put it in data-points
+    dps.append([ bernoulli.rvs(yProb[d]) for d in range(dimdp) ])
 
-samplesArray = np.array(samples, int)
+dpsArray = np.array(dps, int)
 np.set_printoptions(threshold=nHiddenVars-1)
-print "samples\n", samplesArray
+print "data-points\n", dpsArray
 print "\nPi", Pi
 print "\nW\n", W
-np.save("s" + str(nSamples), samplesArray)
-np.savez("t" + str(nSamples), Pi=Pi, W=W)
-print "parameters were saved in file t" + str(nSamples) + ".npz"
-print "samples were saved in file s" + str(nSamples) + ".npy"
+np.save("s" + str(ndps), dpsArray)
+np.savez("t" + str(ndps), Pi=Pi, W=W)
+print "parameters were saved in file t" + str(ndps) + ".npz"
+print "data-points were saved in file s" + str(ndps) + ".npy"

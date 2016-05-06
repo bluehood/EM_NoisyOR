@@ -12,7 +12,7 @@ from sys import exit
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--parFiles', dest='parFile',
                     help="""The body of the names of the files containing the
-parameters. The samples file will be set to
+parameters. The data-points file will be set to
 'sPARFILE.npy'. The true parameters file will be set
 to 'tPARFILE.npz'. The learned parameters file will be set to 
 'lPARFILE.npz'. This is a commodity option to save
@@ -22,12 +22,12 @@ parser.add_argument('-t', '--truth', dest="truep",
                     help='the npz file containing the true parameters')
 parser.add_argument('-l', '--learned', dest="learnedp",
                     help='the npz file containing the learned parameters')
-parser.add_argument('-s', '--samples', dest="samples",
-                    help='the npy file containing the samples')
+parser.add_argument('-s', '--dps', dest="dps",
+                    help='the npy file containing the data-points')
 args = parser.parse_args()
 if not args.parFile:
-    if not (args.samples and args.truep and args.learnedp):
-        print """Please provide samples, true and learned parameters filenames.
+    if not (args.dps and args.truep and args.learnedp):
+        print """Please provide data-points, true and learned parameters filenames.
 The -p option can be used as a shorthand if filenames have the same body.
 Please use the -h option for more information"""
         exit(1)
@@ -51,8 +51,8 @@ def compare(A, B):
 tp = np.load(args.truep or ('t' + args.parFile + '.npz'))
 # Load log-likelihood and learned parameters
 lp = np.load(args.learnedp or ('l' + args.parFile + '.npz'))
-# Samples
-samples = np.load(args.samples or ('s' + args.parFile + '.npy'))
+# data-points
+dps = np.load(args.dps or ('s' + args.parFile + '.npy'))
 # Plot log-likelihood and true log-likelihood
 plt.figure()
 plt.plot(range(lp["logLs"].size),
@@ -62,18 +62,18 @@ plt.plot(range(lp["logLs"].size),
 plt.title("True vs learned log-likelihood")
 plt.xlabel("iterations")
 plt.ylabel("log-likelihood")
-# Plot the first twelve samples
-dimMatrix = sqrt(samples.shape[1])
-samples = samples[:12]
+# Plot the first twelve data-points
+dimMatrix = sqrt(dps.shape[1])
+dps = dps[:12]
 
 plt.figure()
 for nPlot in range(12):
     plt.subplot(4, 3, nPlot+1)
-    plot = plt.imshow(samples[nPlot].reshape(dimMatrix, dimMatrix),
+    plot = plt.imshow(dps[nPlot].reshape(dimMatrix, dimMatrix),
                       cmap="Greys", interpolation='none')
     clear_axes(plot)
     if nPlot == 1:
-            plt.title('First 12 samples')
+            plt.title('First 12 data-points')
 
 # Build grid of heat-maps to compare true and learned parameters
 nMatrices = max(tp["W"].shape[1], lp["W"].shape[1])
