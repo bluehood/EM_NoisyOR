@@ -14,11 +14,11 @@ import argparse
 
 # Defiine parser
 parser = argparse.ArgumentParser()
-parser.add_argument('-j', '--nHiddenVars', default=10, dest='nHiddenVars',
+parser.add_argument('-H', '--nHiddenVars', default=10, dest='nHiddenVars',
                     type=int, help='number of hidden variables')
-parser.add_argument('-n', '--ndps', default=1000, dest='ndps', type=int,
+parser.add_argument('-N', '--ndps', default=1000, dest='ndps', type=int,
                     help='number of data-points to generate')
-parser.add_argument('-d', '--dimdp', default=0, dest='dimdp', type=int,
+parser.add_argument('-D', '--dimdp', default=0, dest='dimdp', type=int,
                     help='linear dimension of each generated data-point, i.e.\
                           size of output array')
 args = parser.parse_args()

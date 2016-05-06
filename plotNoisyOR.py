@@ -22,7 +22,7 @@ parser.add_argument('-t', '--truth', dest="truep",
                     help='the npz file containing the true parameters')
 parser.add_argument('-l', '--learned', dest="learnedp",
                     help='the npz file containing the learned parameters')
-parser.add_argument('-s', '--dps', dest="dps",
+parser.add_argument('-d', '--dps', dest="dps",
                     help='the npy file containing the data-points')
 args = parser.parse_args()
 if not args.parFile:

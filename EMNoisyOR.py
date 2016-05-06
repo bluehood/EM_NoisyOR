@@ -15,7 +15,7 @@ np.set_printoptions(precision=14, suppress=True, threshold=10000)
 
 # Define option parser
 parser = argparse.ArgumentParser()
-parser.add_argument('-j', '--nhiddenvars', required=True, dest='nHiddenVars',
+parser.add_argument('-H', '--nhiddenvars', required=True, dest='nHiddenVars',
                     type=int, help='number of hidden variables')
 parser.add_argument('-p', '--parFiles', dest='parFile',
                     help="""The body of the names of the files containing the
@@ -24,7 +24,7 @@ parameters. The data-points file will be set to
 to 'tPARFILE.npz'. This is a commodity option to save
 typing. This option is overridden by the -s and -t options
 if they are present.""")
-parser.add_argument('-s', '--dpsfile', dest="sFile",
+parser.add_argument('-d', '--dpsfile', dest="sFile",
                     help='the npy file containing the data-points')
 parser.add_argument('-t', '--tparamsfile', dest="tFile",
                     help='the npz file containing the true parameters')
