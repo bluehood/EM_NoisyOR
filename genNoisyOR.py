@@ -34,16 +34,16 @@ if not dimdp:
 # e.g. matrices will be 5x5 if dimdp==25
 # Each of this matrices has one vertical or horizontal bar
 # The number of matrices should be equal to the number of hidden variables
-W = np.ones((dimdp, nHiddenVars))*0.1
 dimMatrix = int(sqrt(dimdp))
 nBars = min(nHiddenVars, 2*dimMatrix)
-value = 0.8
+values = (0.1, 0.8)
+W = np.ones((dimdp, nHiddenVars))*values[0]
 # Paint vertical bars
 for c in range(nBars/2):
-    W[[ i*dimMatrix + c for i in range(dimMatrix) ], c ] = value
+    W[[ i*dimMatrix + c for i in range(dimMatrix) ], c ] = values[1]
 # Paint horizontal bars
 for c in range(nBars/2):
-    W[[ i + c*dimMatrix for i in range(dimMatrix) ], c + nBars/2 ] = value
+    W[[ i + c*dimMatrix for i in range(dimMatrix) ], c + nBars/2 ] = values[1]
 
 # We want an average of 2 bars/data-point
 Pi = 2./nHiddenVars
