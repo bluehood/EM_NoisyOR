@@ -164,6 +164,7 @@ trueLogL = logL(pseudoLogJoint(trueParams["Pi"],
                  deltaDps,
                  trueHiddenVarConfs.shape[1],
                  trueParams["Pi"])
+print "true logL =", trueLogL
 
 
 ################ START LEARNING #################
