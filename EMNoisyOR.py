@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # EM learning algorithm for the Noisy-OR
 # author: blue, 29/03/2016
-# TODO branch with weights shown in real-time
 # TODO order bar matrices according to p(s_h' | y = W_dh). Delete sorting
 #      routine in plotNoisyOR
 
@@ -81,9 +80,7 @@ def meanPosterior(g, pseudoLogJoints, dps):
     configuration c give data-point n"""
 
     # Evaluate constants B_n by which we can translate pseudoLogJoints
-    # TODO check grafically whether 20 is a good magic number
-    # (exp(20) is about the highest number we can evaluate precisely)
-    B = 20 - np.max(pseudoLogJoints, axis=0)
+    B = 200 - np.max(pseudoLogJoints, axis=0)
 
     # sum{c}{g_ic*exp(pseudoLogJoints_cn + B)} /
     #   (sum{c}{exp(pseudoLogJoints_cn + B)} + prod{d}{delta(y_nd)*exp(B))
@@ -151,7 +148,6 @@ np.clip(W, eps, 1-eps, out=W)
 # Pi = trueParams["Pi"]
 # W = trueParams["W"]
 
-# TODO we could just write initW to the file instead of keeping it in memory
 initW = np.copy(W) # save initial values of the parameters
 
 # Evaluate true log-likelihood from true parameters (for consistency checks)
