@@ -36,7 +36,7 @@ eps = 1e-2
 hiddenVarConfs = em.genHiddenVarConfs(nHiddenVars)
 
 # Initialise parameters
-Pi = 1./nHiddenVars
+Pi = np.array([ 1./nHiddenVars ]*nHiddenVars)
 W = np.random.rand(dps.shape[1], nHiddenVars)
 np.clip(W, eps, 1-eps, out=W)
 # Alternatively: initialise parameters to the ground-truth values
@@ -68,12 +68,10 @@ for i in range(100):
     logLs += (em.logL(pseudoLogJoints, deltaDps, nHiddenVars, Pi),)
 
     # M-step
-    # Pi = sum{n}{<sum{h}{hiddenVarConfs_ch}>} / (N*H)
-    Pi = np.sum(em.meanPosterior(np.sum(hiddenVarConfs, axis=1),
+    # Pi_h = sum{n}{<hiddenVarConfs_hc>} / N
+    Pi = np.sum(em.meanPosterior(np.transpose(hiddenVarConfs),
                               pseudoLogJoints,
-                              dps,
-                              deltaDps)) / \
-            (dps.shape[0]*nHiddenVars)
+                              dps, deltaDps), axis=1) / dps.shape[0]
 
     Wtilde = em.evaluateWtilde(Ws)
     denominators = 1 - Wtilde*Ws # faster than np.prod(Ws, axis=1) + newaxis

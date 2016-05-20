@@ -36,8 +36,8 @@ B*log(p(hiddenVarConf, dp))"""
     # logPy_nc = sum{d}{y_nd*log(1/prods_dc - 1) + log(prods_dc)}
     logPy = np.dot(dps, np.log(1/prods - 1)) + \
                 np.sum(np.log(prods), axis=0)
-    # logPriors_c = sum{h}{hvc_ch}*log(Pi/(1-Pi))
-    logPriors = np.sum(hiddenVarConfs, axis=1)*np.log(Pi/(1-Pi))
+    # logPriors_c = sum{h}{hvc_ch}*log(Pi_h/(1-Pi_h))
+    logPriors = np.sum(hiddenVarConfs*np.log(Pi/(1-Pi)), axis=1)
     # return pseudoLogJoints_cn
     return np.transpose(logPriors + logPy)
 
@@ -69,11 +69,11 @@ def meanPosterior(g, pseudoLogJoints, dps, deltaDps):
 def logL(pseudoLogJoints, deltaDps, nHiddenVars, Pi):
     """Evaluate log-likelihood logL
     logL = sum{n}{log(prod{d}{delta(y_nd)} + \
-            sum{c}{exp(pseudoLogJoints_cn)}} + N*H*log(1-Pi)"""
+            sum{c}{exp(pseudoLogJoints_cn)}} + N*sum{h}{log(1-Pi_h)}"""
 
     return np.sum(np.log(deltaDps + \
            np.sum(np.exp(pseudoLogJoints), axis=0))) + \
-           deltaDps.size*nHiddenVars*np.log(1-Pi)
+           deltaDps.size*np.sum(np.log(1-Pi))
 
 
 def debugPrint(pseudoLogJoints, Pi, W):
