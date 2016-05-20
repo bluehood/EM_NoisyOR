@@ -12,15 +12,15 @@ from scipy.stats import bernoulli
 from math import sqrt
 import argparse
 
-# Defiine parser
+# Define parser
 parser = argparse.ArgumentParser()
-parser.add_argument('-H', '--nHiddenVars', default=10, dest='nHiddenVars',
+parser.add_argument('-H', '--nHiddenVars', required=True, dest='nHiddenVars',
                     type=int, help='number of hidden variables')
-parser.add_argument('-N', '--ndps', default=1000, dest='ndps', type=int,
+parser.add_argument('-N', '--ndps', required=True, dest='ndps', type=int,
                     help='number of data-points to generate')
 parser.add_argument('-D', '--dimdp', default=0, dest='dimdp', type=int,
                     help='linear dimension of each generated data-point, i.e.\
-                          size of output array')
+                          size of output array. Default value is (H/2)^2')
 args = parser.parse_args()
 
 # Define parameters
@@ -59,10 +59,10 @@ for i in range(ndps):
 
 dpsArray = np.array(dps, int)
 np.set_printoptions(threshold=nHiddenVars-1)
-print "data-points\n", dpsArray
-print "\nPi", Pi
-print "\nW\n", W
-np.save("s" + str(ndps), dpsArray)
-np.savez("t" + str(ndps), Pi=Pi, W=W)
-print "parameters were saved in file t" + str(ndps) + ".npz"
-print "data-points were saved in file s" + str(ndps) + ".npy"
+print "data-point size", len(dps[0])
+print "Pi", Pi
+print "bars values", values
+np.save("N" + str(ndps), dpsArray)
+np.savez("T" + str(ndps), Pi=Pi, W=W)
+print "parameters were saved in file T" + str(ndps) + ".npz"
+print "data-points were saved in file N" + str(ndps) + ".npy"

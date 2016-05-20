@@ -16,24 +16,11 @@ np.set_printoptions(precision=14, suppress=True, threshold=10000)
 parser = argparse.ArgumentParser()
 parser.add_argument('-H', '--nhiddenvars', required=True, dest='nHiddenVars',
                     type=int, help='number of hidden variables')
-parser.add_argument('-p', '--parFiles', dest='parFile',
-                    help="""The body of the names of the files containing the
-parameters. The data-points file will be set to
-'sPARFILE.npy' while the true parameters file will be set
-to 'tPARFILE.npz'. This is a commodity option to save
-typing. This option is overridden by the -s and -t options
-if they are present.""")
-parser.add_argument('-d', '--dpsfile', dest="sFile",
+parser.add_argument('-d', '--dpsfile', required=True, dest="dataFile",
                     help='the npy file containing the data-points')
-parser.add_argument('-t', '--tparamsfile', dest="tFile",
+parser.add_argument('-t', '--tparamsfile', dest="tFile", required=True,
                     help='the npz file containing the true parameters')
 args = parser.parse_args()
-if not args.parFile:
-    if not (args.sFile and args.tFile):
-        print """Please provide both data-points and true prameters filenames.
-The -p option can be used as a shorthand if filenames have the same body.
-Please use the -h option for more information"""
-        exit(1)
 
 
 def evaluateWtilde(Ws):
@@ -115,7 +102,7 @@ def signalHandler(signal, frame):
 # Number of hidden variables assumed present
 nHiddenVars = args.nHiddenVars
 # File containing the data-points/data-points
-dps = np.load(args.sFile or ('s' + args.parFile + '.npy'))
+dps = np.load(args.dataFile)
 # deltaDps is a quantity useful for later calculations
 # deltaDps_n is 1 if dps_nd == 0 for each d, 0 otherwise
 deltaDps = np.array(~np.any(dps, axis=1), dtype=int)
@@ -208,17 +195,8 @@ for i in range(100):
 
 
 ################ WRAP-UP OPERATIONS #################
-# Evaluate max difference with true values of a bars test
-smallval = np.min(trueParams["W"])
-bigval = np.max(trueParams["W"])
-smalldiff = np.abs(W[W<0.5] - smallval)
-bigdiff = np.abs(W[W>=0.5] - bigval) 
-Werror = np.max(np.append(smalldiff, bigdiff))
-
 # Save results to file and print out last parameter values
-filename = "l" + str(dps.shape[0])
+filename = "L" + str(dps.shape[0])
 np.savez(filename, Pi=Pi, W=W,
          logLs=logLs, trueLogL=trueLogL, initW=initW)
-print "end Pi\n", Pi
-print "end W (max error: " + str(Werror) + ")\n", W
 print "results have been saved in " + filename + ".npz"

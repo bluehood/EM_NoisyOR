@@ -22,11 +22,11 @@ parser.add_argument('-t', '--truth', dest="truep",
                     help='the npz file containing the true parameters')
 parser.add_argument('-l', '--learned', dest="learnedp",
                     help='the npz file containing the learned parameters')
-parser.add_argument('-d', '--dps', dest="dps",
+parser.add_argument('-d', '--dps', dest="dps", default="",
                     help='the npy file containing the data-points')
 args = parser.parse_args()
 if not args.parFile:
-    if not (args.dps and args.truep and args.learnedp):
+    if not (args.truep and args.learnedp):
         print """Please provide data-points, true and learned parameters
 filenames. The -p option can be used as a shorthand if filenames have the same
 body. Please use the -h option for more information"""
@@ -48,11 +48,9 @@ list bars matrices in an ordered fashion"""
     return cmp(Ascore,Bscore)
 
 # Load true parameters
-tp = np.load(args.truep or ('t' + args.parFile + '.npz'))
+tp = np.load(args.truep or ('T' + args.parFile + '.npz'))
 # Load log-likelihood and learned parameters
-lp = np.load(args.learnedp or ('l' + args.parFile + '.npz'))
-# data-points
-dps = np.load(args.dps or ('s' + args.parFile + '.npy'))
+lp = np.load(args.learnedp or ('L' + args.parFile + '.npz'))
 # Plot log-likelihood and true log-likelihood
 plt.figure()
 plt.plot(range(lp["logLs"].size),
@@ -62,18 +60,21 @@ plt.plot(range(lp["logLs"].size),
 plt.title("True vs learned log-likelihood")
 plt.xlabel("iterations")
 plt.ylabel("log-likelihood")
-# Plot the first twelve data-points
-dimMatrix = sqrt(dps.shape[1])
-dps = dps[:12]
 
-plt.figure()
-for nPlot in range(12):
-    plt.subplot(4, 3, nPlot+1)
-    plot = plt.imshow(dps[nPlot].reshape(dimMatrix, dimMatrix),
-                      cmap="Greys", interpolation='none')
-    clear_axes(plot)
-    if nPlot == 1:
-            plt.title('First 12 data-points')
+dimMatrix = int(sqrt(tp["W"].shape[0]))
+
+if args.dps != "":
+    # Plot the first twelve data-points
+    dps = np.load(args.dps or ('N' + args.parFile + '.npy'))
+    dps = dps[:12]
+    plt.figure()
+    for nPlot in range(12):
+        plt.subplot(4, 3, nPlot+1)
+        plot = plt.imshow(dps[nPlot].reshape(dimMatrix, dimMatrix),
+                          cmap="Greys", interpolation='none')
+        clear_axes(plot)
+        if nPlot == 1:
+                plt.title('First 12 data-points')
 
 # Build grid of heat-maps to compare true and learned parameters
 nMatrices = max(tp["W"].shape[1], lp["W"].shape[1])
