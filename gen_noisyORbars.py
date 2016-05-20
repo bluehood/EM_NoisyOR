@@ -48,12 +48,12 @@ for c in range(nBars / 2):
     W[[i + c * dimMatrix for i in range(dimMatrix)], c + nBars / 2] = barsval
 
 # We want an average of 2 bars/data-point
-Pi = 2. / H
+Pi = np.array([ 2./H ]*H)
 
 Y = []
 for i in range(N):
     # Generate hidden variables array s
-    s = bernoulli.rvs(Pi, size=H)
+    s = np.array([ bernoulli.rvs(p) for p in Pi ])
     # Evaluate array of bernoulli probabilities for the data-points y
     yProb = 1 - np.prod(1 - W * s, axis=1)
     # produce a data-point and put it in data-points

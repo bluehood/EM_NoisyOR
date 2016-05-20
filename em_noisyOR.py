@@ -39,7 +39,7 @@ eps = 1e-2
 S = em.genHiddenVarStates(H)
 
 # Initialise parameters
-Pi = 1. / H
+Pi = np.array([ 1./H ]*H)
 W = np.random.rand(D, H)
 np.clip(W, eps, 1 - eps, out=W)
 initW = np.copy(W)  # save initial values of the parameters
@@ -67,17 +67,12 @@ for i in range(100):
     logLs += (em.logL(plj, deltaY, H, Pi),)
 
     # M-step
-    # Pi = sum{n}{<sum{h}{S_ch}>} / (N*H)
-    Pi = np.sum(em.meanPosterior(np.sum(S, axis=1), plj, Y, deltaY)) / (N * H)
+    # Pi_h = sum{n}{<hiddenVarConfs_hc>} / N
+    Pi = np.sum(em.meanPosterior(np.transpose(S), plj, Y, deltaY), axis=1) / N
 
+    # denominators_dhc = (1-W_dh*s_ch)(1-prod_h(1-W_dh*s_ch))
     B = S.T / (Ws * (1 - prods))
-    Btilde = np.einsum(
-        'ijk,ki->ij',
-        em.meanPosterior(B,
-                         plj,
-                         Y,
-                         deltaY),
-        Y - 1)
+    Btilde = np.einsum('ijk,ki->ij', em.meanPosterior(B, plj, Y, deltaY), Y - 1)
     C = prods * B / Ws
     Ctilde = np.sum(em.meanPosterior(C, plj, Y, deltaY), axis=2)
     W = 1 + Btilde / Ctilde

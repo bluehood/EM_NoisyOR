@@ -27,9 +27,9 @@ the joint probability of a certain hidden state s and an observable state y."""
         prods = prods.reshape(W.shape[0], S.shape[0])
 
     # logPy_nc = sum{d}{y_nd*log(1/prods_dc - 1) + log(prods_dc)}
-    logPy = np.dot(Y, np.log(1 / prods - 1)) + np.sum(np.log(prods), axis=0)
-    # logPriors_c = sum{h}{hvc_ch}*log(Pi/(1-Pi))
-    logPriors = np.sum(S, axis=1) * np.log(Pi / (1 - Pi))
+    logPy = np.dot(Y, np.log(1/prods - 1)) + np.sum(np.log(prods), axis=0)
+    # logPriors_c = sum{h}{hvc_ch}*log(Pi_h/(1-Pi_h))
+    logPriors = np.sum(S * np.log(Pi / (1 - Pi)), axis=1)
     # return plj_cn
     return np.transpose(logPriors + logPy)
 
@@ -57,10 +57,11 @@ data-point y_n"""
 
 def logL(plj, deltaY, H, Pi):
     """Evaluate log-likelihood logL
-logL = sum{n}{log(prod{d}{delta(y_nd)} + sum{c}{exp(plj_cn)}} + N*H*log(1-Pi)"""
+logL = sum{n}{log(prod{d}{delta(y_nd)} + sum{c}{exp(plj_cn)}} + \
+N*sum{h}{log(1-Pi_h)}"""
 
     return np.sum(np.log(deltaY + np.sum(np.exp(plj), axis=0))) \
-        + deltaY.size * H * np.log(1 - Pi)
+           + deltaY.size * np.sum(np.log(1 - Pi))
 
 
 def genBars(D, H):
