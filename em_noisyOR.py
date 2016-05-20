@@ -39,9 +39,6 @@ hiddenVarConfs = em.genHiddenVarConfs(nHiddenVars)
 Pi = 1./nHiddenVars
 W = np.random.rand(dps.shape[1], nHiddenVars)
 np.clip(W, eps, 1-eps, out=W)
-# Alternatively: initialise parameters to the ground-truth values
-# Pi = trueParams["Pi"]
-# W = trueParams["W"]
 
 initW = np.copy(W) # save initial values of the parameters
 
