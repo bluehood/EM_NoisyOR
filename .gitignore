@@ -2,3 +2,4 @@
 *.swp
 *.npy
 *.npz
+*.pyc
