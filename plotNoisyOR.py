@@ -56,7 +56,7 @@ plt.figure()
 plt.plot(range(lp["logLs"].size),
          lp["logLs"],
          range(lp["logLs"].size),
-         lp["trueLogL"].repeat(lp["logLs"].size))
+         tp["trueLogL"].repeat(lp["logLs"].size))
 plt.title("True vs learned log-likelihood")
 plt.xlabel("iterations")
 plt.ylabel("log-likelihood")

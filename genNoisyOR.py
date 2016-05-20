@@ -11,6 +11,7 @@ import numpy as np
 from scipy.stats import bernoulli
 from math import sqrt
 import argparse
+import emutils as em
 
 # Define parser
 parser = argparse.ArgumentParser()
@@ -58,11 +59,19 @@ for i in range(ndps):
     dps.append([ bernoulli.rvs(yProb[d]) for d in range(dimdp) ])
 
 dpsArray = np.array(dps, int)
+
+# Evaluate true log-likelihood from true parameters (for consistency checks)
+hiddenVarConfs = em.genHiddenVarConfs(nHiddenVars)
+deltaDps = np.array(~np.any(dps, axis=1), dtype=int)
+trueLogL = em.logL(em.pseudoLogJoint(Pi, W, hiddenVarConfs, dps),
+                   deltaDps, nHiddenVars, Pi)
+
 np.set_printoptions(threshold=nHiddenVars-1)
 print "data-point size", len(dps[0])
 print "Pi", Pi
 print "bars values", values
+print "true logL =", trueLogL
 np.save("N" + str(ndps), dpsArray)
-np.savez("T" + str(ndps), Pi=Pi, W=W)
+np.savez("T" + str(ndps), Pi=Pi, W=W, trueLogL=trueLogL)
 print "parameters were saved in file T" + str(ndps) + ".npz"
 print "data-points were saved in file N" + str(ndps) + ".npy"
