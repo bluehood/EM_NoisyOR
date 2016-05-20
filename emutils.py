@@ -80,9 +80,3 @@ def debugPrint(pseudoLogJoints, Pi, W):
     print "plg", pseudoLogJoints
     print "W", W
     print "Pi", Pi
-
-
-def signalHandler(signal, frame):
-    global done
-    print "Quitting on keyboard interrupt!"
-    done = True

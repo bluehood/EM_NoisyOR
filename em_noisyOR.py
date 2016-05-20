@@ -48,12 +48,13 @@ initW = np.copy(W) # save initial values of the parameters
 
 ################ START LEARNING #################
 # From now on Ctrl-C does not interrupt execution, just sets done = True
-signal.signal(signal.SIGINT, em.signalHandler)
-done = False
+done = [ False ] # put it in a list so the signalHandler can change the value
+def sigAction(sig, frame): done[0] = True
+signal.signal(signal.SIGINT, sigAction)
 counter = 0;
 logLs = () # The log-likelihoods evaluated at each step
 for i in range(100):
-    if done:
+    if done[0]:
         break
 # Alternatively:
 # while not done:
