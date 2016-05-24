@@ -34,6 +34,7 @@ B*log(p(hiddenVarConf, dp))"""
     if prods is None:
         # prods_dc = 1 - Wbar_dc = prod{h}{1-W_dh*s_ch}
         prods = np.prod(1 - np.einsum('ij,kj->ijk', W, hiddenVarConfs), axis=1)
+    prods = prods.reshape(W.shape[0], hiddenVarConfs.shape[0])
 
     # logPy_nc = sum{d}{y_nd*log(1/prods_dc - 1) + log(prods_dc)}
     logPy = np.dot(dps, np.log(1/prods - 1)) + \
