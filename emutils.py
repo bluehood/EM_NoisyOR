@@ -12,27 +12,29 @@ def genHiddenVarConfs(H):
     return hiddenVarConfs
 
 def evaluateWtilde(Ws):
-    # Wtilde_dhc = Prod{h'!=h}{1 - W_dj'*hiddenVarConfs_cj'}
+    # Wtilde_dhc = Prod{h'!=h}{1 - W_dh'*hiddenVarConfs_ch'}
     # These three lines work by multiplying cumulative products of Ws in both
     # directions (from beginning to end of each row and from end to beginning)
     # in a smart way. If Ws = array([a,b,c]), the contents of ret would be,
     # for each of the lines, ret == [1,1,1], then ret == [1, a, ab], and
     # finally ret == [1, a, ab]*[cb, c, 1] == [cb, ac, ab]
+    # Operations are performed on the first two axes of Ws. If Ws has more than
+    # two axes, these operations are performed for each element of the extra
+    # axes.
     ret = np.ones_like(Ws)
     np.cumprod(Ws[:, :-1], axis=1, out=ret[:, 1:])
     ret[:, :-1] *= np.cumprod(Ws[:, :0:-1], axis=1)[:, ::-1]
     return ret
 
 
-def pseudoLogJoint(Pi, W, hiddenVarConfs, dps, Ws=None):
+def pseudoLogJoint(Pi, W, hiddenVarConfs, dps, prods=None):
     """Takes the parameters and returns a matrix M[hiddenVarConfs][dp].
 Each element of the matrix is the pseudo-log-joint probablity \
 B*log(p(hiddenVarConf, dp))"""
-    if Ws is None:
-        Ws = 1 - np.einsum('ij,kj->ijk', W, hiddenVarConfs)
+    if prods is None:
+        # prods_dc = 1 - Wbar_dc = prod{h}{1-W_dh*s_ch}
+        prods = np.prod(1 - np.einsum('ij,kj->ijk', W, hiddenVarConfs), axis=1)
 
-    # prods_dc = 1 - Wbar_dc = prod{h}{1-W_dh*s_ch}
-    prods = np.prod(Ws, axis=1)
     # logPy_nc = sum{d}{y_nd*log(1/prods_dc - 1) + log(prods_dc)}
     logPy = np.dot(dps, np.log(1/prods - 1)) + \
                 np.sum(np.log(prods), axis=0)
