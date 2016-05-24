@@ -27,15 +27,14 @@ def evaluateWtilde(Ws):
     return ret
 
 
-def pseudoLogJoint(Pi, W, hiddenVarConfs, dps, Ws=None):
+def pseudoLogJoint(Pi, W, hiddenVarConfs, dps, prods=None):
     """Takes the parameters and returns a matrix M[hiddenVarConfs][dp].
 Each element of the matrix is the pseudo-log-joint probablity \
 B*log(p(hiddenVarConf, dp))"""
-    if Ws is None:
-        Ws = 1 - np.einsum('ij,kj->ijk', W, hiddenVarConfs)
+    if prods is None:
+        # prods_dc = 1 - Wbar_dc = prod{h}{1-W_dh*s_ch}
+        prods = np.prod(1 - np.einsum('ij,kj->ijk', W, hiddenVarConfs), axis=1)
 
-    # prods_dc = 1 - Wbar_dc = prod{h}{1-W_dh*s_ch}
-    prods = np.prod(Ws, axis=1)
     # logPy_nc = sum{d}{y_nd*log(1/prods_dc - 1) + log(prods_dc)}
     logPy = np.dot(dps, np.log(1/prods - 1)) + \
                 np.sum(np.log(prods), axis=0)

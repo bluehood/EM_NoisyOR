@@ -58,8 +58,10 @@ for i in range(100):
     # Ws are values needed both in the E and M-step, we evaluate them once here
     # Ws_dhc = 1 - (W_dh * hiddenVarConfs_ch)
     Ws = 1 - np.einsum('ij,kj->ijk', W, hiddenVarConfs) 
+    # prods_dc = 1 - Wbar_dc = prod{h}{1-W_dh*s_ch}
+    prods = np.prod(Ws, axis=1)
     # E-step: evaluate pseudo-log-joint probabilities
-    pseudoLogJoints = em.pseudoLogJoint(Pi, W, hiddenVarConfs, dps, Ws)
+    pseudoLogJoints = em.pseudoLogJoint(Pi, W, hiddenVarConfs, dps, prods)
 
     # Evaluate new likelihood and append it to the tuple
     logLs += (em.logL(pseudoLogJoints, deltaDps, nHiddenVars, Pi),)
@@ -72,14 +74,13 @@ for i in range(100):
                               deltaDps)) / \
             (dps.shape[0]*nHiddenVars)
 
-    Wtilde = em.evaluateWtilde(Ws)
-    denominators = 1 - Wtilde*Ws # faster than np.prod(Ws, axis=1) + newaxis
-    denominators = (1 - denominators)*denominators
-    D = np.einsum('ijk,kj->ijk', Wtilde, hiddenVarConfs) / denominators
+    # denominators_dhc = (1-W_dh*s_ch)(1-prod_h(1-W_dh*s_ch))
+    D = hiddenVarConfs.T / (Ws*(1 - np.prod(Ws, axis=1, keepdims=True)))
     Dtilde = np.einsum('ijk,ki->ij',
                        em.meanPosterior(D, pseudoLogJoints, dps, deltaDps),
                        dps - 1)
-    Ctilde = np.sum(em.meanPosterior(Wtilde*D, pseudoLogJoints, dps, deltaDps),
+    C = prods[:,None,:] * hiddenVarConfs.T / (np.square(Ws)*(1-prods[:,None,:]))
+    Ctilde = np.sum(em.meanPosterior(C, pseudoLogJoints, dps, deltaDps),
                     axis=2)
     W = 1 + Dtilde/Ctilde
     np.clip(W, eps, 1-eps, out=W)
