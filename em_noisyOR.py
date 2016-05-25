@@ -73,11 +73,11 @@ for i in range(100):
                               deltaDps)) / \
             (dps.shape[0]*nHiddenVars)
 
-    D = hiddenVarConfs.T / (Ws*(1 - np.prod(Ws, axis=1, keepdims=True)))
+    D = hiddenVarConfs.T / (Ws*(1 - prods))
     Dtilde = np.einsum('ijk,ki->ij',
                        em.meanPosterior(D, pseudoLogJoints, dps, deltaDps),
                        dps - 1)
-    C = prods*hiddenVarConfs.T / (np.square(Ws)*(1 - prods))
+    C = prods*D/Ws
     Ctilde = np.sum(em.meanPosterior(C, pseudoLogJoints, dps, deltaDps),
                     axis=2)
     W = 1 + Dtilde/Ctilde
