@@ -1,85 +1,62 @@
 #!/usr/bin/env python
 import numpy as np
 
-def genHiddenVarConfs(H):
-    hiddenVarConfs = np.array([[0],[1]], dtype=int)
+def genHiddenVarStates(H):
+    """Generate all possible hidden variable states, i.e. all possible
+configurations of the H hidden binary variables. The all-zero state is deleted
+before returning the result, since it is not needed by the algorithm"""
+    S = np.array([[0],[1]], dtype=int)
     for i in range(H-1):
-        hiddenVarConfs = np.vstack([ np.hstack(([x,x], [[0],[1]]))
-                                     for x in hiddenVarConfs ])
+        S = np.vstack([ np.hstack(([x,x], [[0],[1]])) for x in S ])
     # Remove the all-zero configuration:
     # it is not required in the EM-algorithm and causes 0/0 calculations
-    hiddenVarConfs = np.delete(hiddenVarConfs, 0, 0)
-    return hiddenVarConfs
-
-def evaluateWtilde(Ws):
-    # Wtilde_dhc = Prod{h'!=h}{1 - W_dh'*hiddenVarConfs_ch'}
-    # These three lines work by multiplying cumulative products of Ws in both
-    # directions (from beginning to end of each row and from end to beginning)
-    # in a smart way. If Ws = array([a,b,c]), the contents of ret would be,
-    # for each of the lines, ret == [1,1,1], then ret == [1, a, ab], and
-    # finally ret == [1, a, ab]*[cb, c, 1] == [cb, ac, ab]
-    # Operations are performed on the first two axes of Ws. If Ws has more than
-    # two axes, these operations are performed for each element of the extra
-    # axes.
-    ret = np.ones_like(Ws)
-    np.cumprod(Ws[:, :-1], axis=1, out=ret[:, 1:])
-    ret[:, :-1] *= np.cumprod(Ws[:, :0:-1], axis=1)[:, ::-1]
-    return ret
+    S = np.delete(S, 0, 0)
+    return S
 
 
-def pseudoLogJoint(Pi, W, hiddenVarConfs, dps, prods=None):
-    """Takes the parameters and returns a matrix M[hiddenVarConfs][dp].
-Each element of the matrix is the pseudo-log-joint probablity \
-B*log(p(hiddenVarConf, dp))"""
+def pseudoLogJoint(Pi, W, S, Y, prods=None):
+    """Evaluate pseudo-log-joints K*log(p(S[c], Y[n])) where K is a constant
+that does not depend on the state and the data-point considered, and p(s,y) is
+the joint probability of a certain hidden state s and an observable state y."""
     if prods is None:
         # prods_dc = 1 - Wbar_dc = prod{h}{1-W_dh*s_ch}
-        prods = np.prod(1 - np.einsum('ij,kj->ijk', W, hiddenVarConfs), axis=1)
-    prods = prods.reshape(W.shape[0], hiddenVarConfs.shape[0])
+        prods = np.prod(1 - np.einsum('ij,kj->ijk', W, S), axis=1)
+    else:
+        # make sure the prods passed have the appropriate shape (DxC)
+        prods = prods.reshape(W.shape[0], S.shape[0])
 
     # logPy_nc = sum{d}{y_nd*log(1/prods_dc - 1) + log(prods_dc)}
-    logPy = np.dot(dps, np.log(1/prods - 1)) + \
-                np.sum(np.log(prods), axis=0)
+    logPy = np.dot(Y, np.log(1/prods - 1)) + np.sum(np.log(prods), axis=0)
     # logPriors_c = sum{h}{hvc_ch}*log(Pi/(1-Pi))
-    logPriors = np.sum(hiddenVarConfs, axis=1)*np.log(Pi/(1-Pi))
-    # return pseudoLogJoints_cn
+    logPriors = np.sum(S, axis=1)*np.log(Pi/(1-Pi))
+    # return plj_cn
     return np.transpose(logPriors + logPy)
 
 
-def meanPosterior(g, pseudoLogJoints, dps, deltaDps):
-    """Takes a (multidimensional) array g and returns its mean weighted
-    over the posterior probabilities of each data-point.
-    The array is assumed to have the axis over which the mean is to
-    be performed as last.
+def meanPosterior(g, plj, Y, deltaY):
+    """Evaluate the mean over the posterior probability distribution of the
+(possibly multidimensional) array g.
+g is assumed to have the axis over which the mean is to be performed as last.
 
-    An array with the same number of dimensions of g is returned, but now
-    the last axis represents the mean of g relative to each different
-    data-point.
+An array with the same number of dimensions of g is returned, but now
+the last axis represents the mean of g relative to each different data-point.
     
-    The calculation performed is equivalent to np.dot(a, np.transpose(q))
-    wher q_cn are the posterior probabilities of each hidden variable
-    configuration c give data-point n"""
+The calculation performed is equivalent to np.dot(g, q) where q_cn are the 
+posterior probabilities of each hidden variable configuration c given the 
+data-point y_n"""
 
-    # Evaluate constants B_n by which we can translate pseudoLogJoints
-    B = 200 - np.max(pseudoLogJoints, axis=0)
+    # Evaluate constants B_n by which we can translate plj
+    B = 200 - np.max(plj, axis=0)
 
-    # sum{c}{g_ic*exp(pseudoLogJoints_cn + B)} /
-    #   (sum{c}{exp(pseudoLogJoints_cn + B)} + prod{d}{delta(y_nd)*exp(B))
-    return np.dot(g, np.exp(pseudoLogJoints + B)) / \
-            (np.sum(np.exp(pseudoLogJoints + B), axis=0) + \
-                deltaDps*np.exp(B))
+    # sum{c}{g_ic*exp(plj_cn + B)} /
+    #   (sum{c}{exp(plj_cn + B)} + prod{d}{delta(y_nd)*exp(B))
+    return np.dot(g, np.exp(plj + B)) \
+           / (np.sum(np.exp(plj + B), axis=0) + deltaY*np.exp(B))
 
 
-def logL(pseudoLogJoints, deltaDps, nHiddenVars, Pi):
+def logL(plj, deltaY, H, Pi):
     """Evaluate log-likelihood logL
-    logL = sum{n}{log(prod{d}{delta(y_nd)} + \
-            sum{c}{exp(pseudoLogJoints_cn)}} + N*H*log(1-Pi)"""
+logL = sum{n}{log(prod{d}{delta(y_nd)} + sum{c}{exp(plj_cn)}} + N*H*log(1-Pi)"""
 
-    return np.sum(np.log(deltaDps + \
-           np.sum(np.exp(pseudoLogJoints), axis=0))) + \
-           deltaDps.size*nHiddenVars*np.log(1-Pi)
-
-
-def debugPrint(pseudoLogJoints, Pi, W):
-    print "plg", pseudoLogJoints
-    print "W", W
-    print "Pi", Pi
+    return np.sum(np.log(deltaY + np.sum(np.exp(plj), axis=0))) \
+           + deltaY.size*H*np.log(1-Pi)
