@@ -3,7 +3,7 @@
 # author: Enrico Guiraud, 26/05/2016
 
 # This script generates N data-points of dimension D with a noisy-OR
-# generative model. The priors are taken all equal to 2/H, where H is the 
+# generative model. The priors are taken all equal to 2/H, where H is the
 # number of hidden variables, and the weight matrices are single horizontal
 # and vertical bars. The data-points will therefore consist of a superposition
 # of an average of 2 bars, with noise.
@@ -30,34 +30,34 @@ N = args.N
 H = args.H
 D = args.D
 if not D:
-    D = (H/2)**2
+    D = (H / 2) ** 2
 
 # Each W[:,h] is seen as a sqrt(D)xsqrt(D) matrix
 # e.g. matrices will be 5x5 if D==25
 # Each of this matrices has one vertical or horizontal bar
 # The number of matrices should be equal to the number of hidden variables
 dimMatrix = int(sqrt(D))
-nBars = min(H, 2*dimMatrix)
+nBars = min(H, 2 * dimMatrix)
 bgval, barsval = (0.1, 0.8)
-W = np.ones((D, H))*bgval
+W = np.ones((D, H)) * bgval
 # Paint vertical bars
-for c in range(nBars/2):
-    W[[ i*dimMatrix + c for i in range(dimMatrix) ], c ] = barsval
+for c in range(nBars / 2):
+    W[[i * dimMatrix + c for i in range(dimMatrix)], c] = barsval
 # Paint horizontal bars
-for c in range(nBars/2):
-    W[[ i + c*dimMatrix for i in range(dimMatrix) ], c + nBars/2 ] = barsval
+for c in range(nBars / 2):
+    W[[i + c * dimMatrix for i in range(dimMatrix)], c + nBars / 2] = barsval
 
 # We want an average of 2 bars/data-point
-Pi = 2./H
+Pi = 2. / H
 
 Y = []
 for i in range(N):
     # Generate hidden variables array s
     s = bernoulli.rvs(Pi, size=H)
     # Evaluate array of bernoulli probabilities for the data-points y
-    yProb = 1 - np.prod(1 - W*s, axis=1)
+    yProb = 1 - np.prod(1 - W * s, axis=1)
     # produce a data-point and put it in data-points
-    Y.append([ bernoulli.rvs(yProb[d]) for d in range(D) ])
+    Y.append([bernoulli.rvs(yProb[d]) for d in range(D)])
 Y = np.array(Y, int)
 
 # Evaluate true log-likelihood from true parameters (for consistency checks)
@@ -66,7 +66,7 @@ deltaY = np.array(~np.any(Y, axis=1), dtype=int)
 trueLogL = em.logL(em.pseudoLogJoint(Pi, W, S, Y),
                    deltaY, H, Pi)
 
-np.set_printoptions(threshold=H-1)
+np.set_printoptions(threshold=H - 1)
 print "data-point size", len(Y[0])
 print "Pi", Pi
 print "background, bars = (" + str(bgval) + ", " + str(barsval) + ")"
