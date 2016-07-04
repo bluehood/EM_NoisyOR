@@ -1,5 +1,5 @@
-#!/usr/bin/env python
 import numpy as np
+from math import sqrt
 
 
 def genHiddenVarStates(H):
@@ -61,3 +61,37 @@ logL = sum{n}{log(prod{d}{delta(y_nd)} + sum{c}{exp(plj_cn)}} + N*H*log(1-Pi)"""
 
     return np.sum(np.log(deltaY + np.sum(np.exp(plj), axis=0))) \
         + deltaY.size * H * np.log(1 - Pi)
+
+
+def genBars(D, H):
+    """
+    Generate data-points containing a vertical or horizontal bar.
+    """
+    dimMatrix = int(sqrt(D))
+    nBars = min(H, 2*dimMatrix)
+    # Build single-bar data-points
+    bars = np.zeros((H, D))
+    # "Paint" vertical bars
+    for c in range(nBars / 2):
+        bars[c, [i * dimMatrix + c for i in range(dimMatrix)]] = 1
+    # "Paint" horizontal bars
+    for c in range(nBars / 2):
+        bars[ c + nBars / 2, [i + c * dimMatrix for i in range(dimMatrix)]] = 1
+    return bars
+
+
+def posterior(Pi, W, S, Y, deltaY = None):
+    """
+    Evaluate posterior probabilities p(S|Y,theta).
+    Return array of posterior probabilities with shape (nHiddenConfs, N), or
+    in other words (S.shape[0], Y.shape[0]).
+    """
+    # plj has shape (S.shape[0], Y.shape[0])
+    plj = pseudoLogJoint(Pi, W, S, Y)
+    # Evaluate constants B_n by which we can translate plj
+    B = 200 - np.max(plj, axis = 0)
+    if deltaY == None:
+        # deltaY_n is 1 if Y_nd == 0 for each d, 0 otherwise (shape=(N))
+        deltaY = np.array(~np.any(Y, axis=1), dtype=int)
+    return np.exp(plj + B) / (np.sum(np.exp(plj + B), axis = 0) \
+                              + deltaY * np.exp(B))
