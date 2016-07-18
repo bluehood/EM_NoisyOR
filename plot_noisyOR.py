@@ -115,16 +115,17 @@ for nMat in range(nMatrices):
 
 
 # PLOT PI PARAMETER ####
+# TODO we should sort Pi the same way we sort W
 plt.figure()
 plt.subplot(2,1,1)
-plot = plt.imshow(np.atleast_2d(lp["Pi"]), interpolation='none',
+plot = plt.imshow(np.atleast_2d(np.sort(lp["Pi"])), interpolation='none',
                   vmin=0., vmax=.5)
 clear_axes(plot)
 plt.title("Subpopulations' probabilities (learned over ground-truth)")
 plt.subplot(2,1,2)
-plot = plt.imshow(np.atleast_2d(tp["Pi"]), interpolation='none',
+plot = plt.imshow(np.atleast_2d(np.sort(tp["Pi"])), interpolation='none',
                   vmin=0., vmax=.5)
 clear_axes(plot)
-# FIXME plt.colorbar()
+# FIXME add plt.colorbar()
 
 plt.show()
