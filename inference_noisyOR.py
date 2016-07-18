@@ -49,6 +49,7 @@ psgy = em.posterior(lp["Pi"], lp["W"], S, Y)
 # For each data-point, order the hidden configurations by decreasing posterior
 sortedInd = np.argsort(psgy, axis=0)[::-1, :]
 sortedPsgy = psgy[sortedInd.flatten(), range(psgy.shape[1])*psgy.shape[0]]
+sortedPsgy = sortedPsgy.reshape(psgy.shape)
 bestConfs = np.empty((N, S.shape[0], H))
 for n in range(N):
     bestConfs[n] = S[sortedInd[:,n]]
