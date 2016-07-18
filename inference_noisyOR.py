@@ -36,6 +36,12 @@ if args.Sfile:
 else:
     S = np.eye(H)
 
+# Check everything is alright
+assert D == Y.shape[1], "mismatch in dimensions of W and Y (respectively " \
+                        + str(lp["W"].shape) + " and " + str(Y.shape) + ")"
+assert H == S.shape[1], "mismatch in dimensions of W and S (respectively " \
+                        + str(lp["W"].shape) + " and " + str(S.shape) + ")"
+
 # Evaluate posteriors for each data-point and each hidden configuration
 # psgy has shape (len(S), N)
 psgy = em.posterior(lp["Pi"], lp["W"], S, Y)
@@ -70,11 +76,6 @@ if args.plot == True:
             activeS = np.nonzero(bestConfs[n,0])[0]
             for i in range(nActiveS):
                 plt.subplot(1, max(nActiveS + 1, 2), i + 2)
-                print nActiveS
-                print activeS
-                print W.shape
-                print W[:,activeS[i]].shape
-                print dim
                 plt.imshow(W[:,activeS[i]].reshape(dim,dim),
                            cmap="Greys", interpolation="none")
     plt.show()
