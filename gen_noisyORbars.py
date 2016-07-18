@@ -47,8 +47,11 @@ for c in range(nBars / 2):
 for c in range(nBars / 2):
     W[[i + c * dimMatrix for i in range(dimMatrix)], c + nBars / 2] = barsval
 
-# We want an average of 2 bars/data-point
-Pi = np.array([ 2./H ]*H)
+# We want an average of 2 bars/data-point, plus noise
+Pi = np.array([ 2./H ]*H) \
+     + np.random.uniform(low=max(-0.2, -1./H), high=0.2, size=H)
+# Normalise Pi
+Pi = Pi / Pi.sum()
 
 Y = []
 for i in range(N):
