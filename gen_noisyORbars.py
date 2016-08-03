@@ -50,8 +50,8 @@ for c in range(nBars / 2):
 # We want an average of 2 bars/data-point, plus noise
 Pi = np.array([ 2./H ]*H) \
      + np.random.uniform(low=max(-0.2, -1./H), high=0.2, size=H)
-# Normalise Pi
-Pi = Pi / Pi.sum()
+# Normalise Pi to have an average of two bars per figure
+Pi = Pi / Pi.sum() * 2
 
 Y = []
 for i in range(N):
